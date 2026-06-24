@@ -45,7 +45,6 @@ def get_movies(request):
 @api_view(["GET"])
 def get_movie_details(request, movie_id):
 
-
     movie = get_object_or_404(Movie, movie_id=movie_id)
     serializer = MovieDetailSerializer(movie)
     return Response(serializer.data)
@@ -53,7 +52,6 @@ def get_movie_details(request, movie_id):
 
 @api_view(["GET"])
 def get_showtimes_for_movie(request, movie_id):
-
 
     showtimes = Showtime.objects.filter(movie_id=movie_id).order_by("show_datetime")
     serializer = ShowtimeSerializer(showtimes, many=True)
