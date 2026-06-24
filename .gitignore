@@ -1,0 +1,28 @@
+# Environment files
+.env.local
+.env.*.local
+
+# Node/Package managers
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python stuff
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+
+# Database backups
+*.dump
+*.backup
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
