@@ -1,0 +1,6 @@
+﻿node_modules/
+.env
+dist/
+SWE-Term-Project-django_backend_backup/
+SWE-Term-Project-henry-backend/
+SWE-Term-Project-tate-database/
