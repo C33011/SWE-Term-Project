@@ -176,7 +176,7 @@ VALUES
     'After the loss of her husband, a woman seeks solace with her in-laws. As one by one they transform into deadites, she comes to discover that the vows she took in life - survive even in death.',
     'https://image.tmdb.org/t/p/w500/ztadKzIIR0ERYqpHteaPFtk7inP.jpg',
     'https://www.youtube.com/embed/TnHby2cxJzs',
-    'Sébastien Vaniček',
+    'Sébastien Vanicek',
     'Souheila Yacoub, Tandi Wright, Hunter Doohan, Luciane Buchanan, Maude Davey',
     'Coming Soon',
     '2026-07-10'
