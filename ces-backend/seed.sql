@@ -35,7 +35,7 @@ INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_ur
 VALUES
 (
     'Toy Story 5',
-    (SELECT genre_id FROM genres WHERE name = 'Animation'),
+    (SELECT genre_id FROM genres WHERE name = 'Animation' LIMIT 1),
     'PG',
     'Bonnie gets a new tablet named Lilypad and stops playing with her toys. Jessie, Woody, and Buzz have to figure out what they mean to her now.',
     'https://image.tmdb.org/t/p/w500/7veGbEIL1nvtVXVwFlqCs62zsvc.jpg',
@@ -47,7 +47,7 @@ VALUES
 ),
 (
     'Obsession',
-    (SELECT genre_id FROM genres WHERE name = 'Horror'),
+    (SELECT genre_id FROM genres WHERE name = 'Horror' LIMIT 1),
     'R',
     'A music store employee makes a wish for his friend to fall in love with him—and gets exactly that, in the worst possible way.',
     'https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg',
@@ -59,7 +59,7 @@ VALUES
 ),
 (
     'Backrooms',
-    (SELECT genre_id FROM genres WHERE name = 'Horror'),
+    (SELECT genre_id FROM genres WHERE name = 'Horror' LIMIT 1),
     'R',
     'A furniture store owner falls through a crack in his wall and into an endless maze of yellow rooms. Something is already in there with him.',
     'https://image.tmdb.org/t/p/w500/rhGx6E3qRNMgj3i5su2oukNHwIQ.jpg',
@@ -71,7 +71,7 @@ VALUES
 ),
 (
     'Project Hail Mary',
-    (SELECT genre_id FROM genres WHERE name = 'Sci-Fi'),
+    (SELECT genre_id FROM genres WHERE name = 'Sci-Fi' LIMIT 1),
     'PG-13',
     'Ryland Grace wakes up alone on an interstellar spaceship with no memory. As it comes back to him, he realizes he may be humanity''s last hope.',
     'https://image.tmdb.org/t/p/w500/yihdXomYb5kTeSivtFndMy5iDmf.jpg',
@@ -83,7 +83,7 @@ VALUES
 ),
 (
     'Masters of the Universe',
-    (SELECT genre_id FROM genres WHERE name = 'Action'),
+    (SELECT genre_id FROM genres WHERE name = 'Action' LIMIT 1),
     'PG-13',
     'Raised on Earth, Prince Adam reclaims the Sword of Power and discovers his destiny on Eternia—becoming He-Man to fight the warlord Skeletor.',
     'https://image.tmdb.org/t/p/w500/3YMd9Ogae4rDKLWuAZFuse9xhc5.jpg',
@@ -95,7 +95,7 @@ VALUES
 ),
 (
     'Scary Movie',
-    (SELECT genre_id FROM genres WHERE name = 'Comedy'),
+    (SELECT genre_id FROM genres WHERE name = 'Comedy' LIMIT 1),
     'R',
     'Cindy, Brenda, Shorty, and Ray are back. So is Ghostface—and this time the killer is targeting the whole legacy cast.',
     'https://image.tmdb.org/t/p/w500/bqOKJrZFR9KpqWE607dw6KOdKCj.jpg',
@@ -111,7 +111,7 @@ INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_ur
 VALUES
 (
     'Supergirl',
-    (SELECT genre_id FROM genres WHERE name = 'Action'),
+    (SELECT genre_id FROM genres WHERE name = 'Action' LIMIT 1),
     'PG-13',
     'When a ruthless enemy strikes too close to home, Kara Zor-El teams up with an unlikely companion on an interstellar journey of vengeance and justice.',
     'https://image.tmdb.org/t/p/w500/xhei2GX9L2H1eQlrHeFw44VNLd1.jpg',
@@ -123,7 +123,7 @@ VALUES
 ),
 (
     'Jackass: Best and Last',
-    (SELECT genre_id FROM genres WHERE name = 'Comedy'),
+    (SELECT genre_id FROM genres WHERE name = 'Comedy' LIMIT 1),
     'R',
     'The original Jackass crew reunites for their final film—a send-off packed with the most outrageous stunts they''ve ever pulled, plus a look back at 26 years of chaos.',
     'https://image.tmdb.org/t/p/w500/tfgccePxnswMqhmtxafliLlcCVR.jpg',
@@ -135,7 +135,7 @@ VALUES
 ),
 (
     'Lucky Strike',
-    (SELECT genre_id FROM genres WHERE name = 'Thriller'),
+    (SELECT genre_id FROM genres WHERE name = 'Thriller' LIMIT 1),
     'R',
     'During the Battle of the Bulge, a wounded American soldier is trapped behind German lines with nothing but a radio. He has to fight his way out before the Panzer army rolls through.',
     'https://image.tmdb.org/t/p/w500/kzRAd7mj39ZY3FGNrDdZjqx56tn.jpg',
@@ -147,7 +147,7 @@ VALUES
 ),
 (
     'Welcome to the Jungle',
-    (SELECT genre_id FROM genres WHERE name = 'Comedy'),
+    (SELECT genre_id FROM genres WHERE name = 'Comedy' LIMIT 1),
     'NR',
     'The mob bosses, bodyguards, and everyone in between are back for another round of absolute chaos in this third installment of the Welcome series.',
     'https://image.tmdb.org/t/p/w500/zibb9EBBCsCeXOUbEw0J6yA0vhZ.jpg',
@@ -159,7 +159,7 @@ VALUES
 ),
 (
     'Runner',
-    (SELECT genre_id FROM genres WHERE name = 'Action'),
+    (SELECT genre_id FROM genres WHERE name = 'Action' LIMIT 1),
     'R',
     'A courier has three hours to deliver a life-saving organ to a sick girl. Then a cartel decides they want it and he has to outrun them to save her life.',
     'https://image.tmdb.org/t/p/w500/gA1UBGxQp0xRaewFF5AE7Xdy1b3.jpg',
@@ -170,16 +170,16 @@ VALUES
     '2026-09-11'
 ),
 (
-    'Resident Evil',
-    (SELECT genre_id FROM genres WHERE name = 'Horror'),
+    'Evil Dead Burn',
+    (SELECT genre_id FROM genres WHERE name = 'Horror' LIMIT 1),
     'R',
-    'A medical courier is making a routine delivery when Raccoon City falls to a viral outbreak. Now he has to survive the monsters, the darkness, and complete his run.',
-    'http://www.impawards.com/2026/posters/resident_evil.jpg',
-    'https://www.youtube.com/embed/SJPu1spHqfk',
-    'Zach Cregger',
-    'Austin Abrams, Zach Cherry, Kali Reis, Paul Walter Hauser, Johnno Wilson',
+    'After the loss of her husband, a woman seeks solace with her in-laws. As one by one they transform into deadites, she comes to discover that the vows she took in life - survive even in death.',
+    'https://image.tmdb.org/t/p/w500/ztadKzIIR0ERYqpHteaPFtk7inP.jpg',
+    'https://www.youtube.com/embed/TnHby2cxJzs',
+    'Sébastien Vaniček',
+    'Souheila Yacoub, Tandi Wright, Hunter Doohan, Luciane Buchanan, Maude Davey',
     'Coming Soon',
-    '2026-09-18'
+    '2026-07-10'
 );
 
 
