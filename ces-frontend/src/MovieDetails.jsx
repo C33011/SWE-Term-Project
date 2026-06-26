@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-const MovieDetails = ({ movieId, onBack }) => {
+const MovieDetails = ({ movieId, onBack, onBookNow }) => {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Hardcoded showtimes, as the assignment allows for this sprint
   const showtimes = ['2:00 PM', '5:00 PM', '8:00 PM'];
 
   useEffect(() => {
@@ -32,10 +31,8 @@ const MovieDetails = ({ movieId, onBack }) => {
       </button>
 
       <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-        {/* Poster */}
         <img src={movie.poster_url} alt={movie.title} style={{ width: '250px', borderRadius: '8px' }} />
 
-        {/* Details */}
         <div style={{ flex: 1, minWidth: '300px' }}>
           <h1>{movie.title}</h1>
           <p><strong>Rating:</strong> {movie.rating}</p>
@@ -44,19 +41,21 @@ const MovieDetails = ({ movieId, onBack }) => {
           {movie.cast_members && <p><strong>Cast:</strong> {movie.cast_members}</p>}
           <p style={{ marginTop: '15px' }}>{movie.description}</p>
 
-          {/* Showtimes */}
           <h3 style={{ marginTop: '20px' }}>Showtimes</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             {showtimes.map((time) => (
-              <span key={time} style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px' }}>
+              <button 
+                key={time} 
+                onClick={() => onBookNow(movieId)}
+                style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}
+              >
                 {time}
-              </span>
+              </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Trailer */}
       <h3 style={{ marginTop: '30px' }}>Trailer</h3>
       {movie.trailer_url ? (
         <iframe
