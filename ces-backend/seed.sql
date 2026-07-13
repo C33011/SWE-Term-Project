@@ -248,3 +248,20 @@ INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
     ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 14:00:00', 50),
     ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 17:00:00', 50),
     ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 20:00:00', 50);
+
+INSERT INTO users (
+    email, password_hash, first_name, last_name, phone,
+    role, status, subscribe_to_promotions,
+    email_confirmation_token, email_confirmed_at
+) VALUES (
+    'admin@test.com',
+    '$2a$10$uvi9/IpJo012hO/k1iS4seWG3l/UCcO5g.nxmBKQSHSLGKTMIQjCG',
+    'Admin',
+    'User',
+    '5555555555',
+    'admin',
+    'Active',
+    FALSE,
+    NULL,
+    CURRENT_TIMESTAMP
+);
