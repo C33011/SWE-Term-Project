@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
-const MovieDetails = ({ movieId, onBack, onBookNow }) => {
+const MovieDetails = () => {
+  const { id: movieId } = useParams();
+  const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,11 +25,11 @@ const MovieDetails = ({ movieId, onBack, onBookNow }) => {
   }, [movieId]);
 
   if (loading) return <div style={{ padding: '20px' }}>Loading movie details...</div>;
-  if (!movie) return <div style={{ padding: '20px' }}>Movie not found.</div>;
+  if (!movie || movie.error) return <div style={{ padding: '20px' }}>Movie not found.</div>;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial', maxWidth: '900px', margin: '0 auto' }}>
-      <button onClick={onBack} style={{ padding: '8px 16px', marginBottom: '20px', cursor: 'pointer' }}>
+      <button onClick={() => navigate('/')} style={{ padding: '8px 16px', marginBottom: '20px', cursor: 'pointer' }}>
         ← Back to Movies
       </button>
 
@@ -44,9 +47,9 @@ const MovieDetails = ({ movieId, onBack, onBookNow }) => {
           <h3 style={{ marginTop: '20px' }}>Showtimes</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             {showtimes.map((time) => (
-              <button 
-                key={time} 
-                onClick={() => onBookNow(movieId)}
+              <button
+                key={time}
+                onClick={() => navigate(`/booking/${movieId}?time=${encodeURIComponent(time)}`)}
                 style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}
               >
                 {time}

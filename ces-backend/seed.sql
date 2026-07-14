@@ -249,19 +249,14 @@ INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
     ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 17:00:00', 50),
     ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 20:00:00', 50);
 
-INSERT INTO users (
-    email, password_hash, first_name, last_name, phone,
-    role, status, subscribe_to_promotions,
-    email_confirmation_token, email_confirmed_at
-) VALUES (
-    'admin@test.com',
-    '$2a$10$uvi9/IpJo012hO/k1iS4seWG3l/UCcO5g.nxmBKQSHSLGKTMIQjCG',
-    'Admin',
-    'User',
-    '5555555555',
-    'admin',
-    'Active',
-    FALSE,
-    NULL,
-    CURRENT_TIMESTAMP
-);
+INSERT INTO users (email, password_hash, first_name, last_name, phone, role, status,
+                   subscribe_to_promotions, email_confirmed_at)
+VALUES
+  ('admin@test.com',    '<PASTE-ADMIN-HASH>', 'Admin', 'User', '5555555555', 'admin',    'Active', FALSE, CURRENT_TIMESTAMP),
+  ('fanuser@test.com',  '<PASTE-USER-HASH>',  'Fan',   'User', '5555555551', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP),
+  ('carduser@test.com', '<PASTE-USER-HASH>',  'Card',  'User', '5555555552', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP);
+
+-- Demo requirement: verified user with a favorite movie already stored
+INSERT INTO favorite_movies (user_id, movie_id)
+VALUES ((SELECT user_id FROM users WHERE email = 'fanuser@test.com'),
+        (SELECT movie_id FROM movies WHERE title = 'Toy Story 5'));
