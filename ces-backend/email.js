@@ -55,4 +55,4 @@ const sendProfileUpdateEmail = async (email) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendProfileUpdateEmail };

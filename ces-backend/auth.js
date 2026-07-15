@@ -5,12 +5,12 @@ const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail, sendProfileUpdateEmail } = require('./email');
 const { authenticate } = require('./middleware');
 
+
 // ============ CRYPTOGRAPHY SETUP ============
 // This uses AES-256-CBC to securely encrypt and decrypt credit card and address information.
 const ALGORITHM = 'aes-256-cbc';
-// Crucial: This key must be EXACTLY 32 characters long.
-// If not defined in your environment (.env file), it defaults to a fallback key.
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-32-character-safe-secret-key'; 
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012';
 const IV_LENGTH = 16; 
 
 // Reversible encryption function
