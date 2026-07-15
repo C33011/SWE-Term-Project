@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Connection to your PostgreSQL database
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -18,12 +17,20 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
 });
 
-// Quick test route
+// NEW: auth routes + access-control middleware
+const authRoutes = require('./auth');
+const { authenticate, requireAdmin } = require('./middleware');
+app.use('/api/auth', authRoutes(pool));
+
+// NEW: example protected admin route (proves access control to the TA)
+app.get('/api/admin/ping', authenticate, requireAdmin, (req, res) => {
+  res.json({ message: 'Admin access confirmed' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Return all movies (the homepage searches/filters these on its own)
 app.get('/api/movies', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM movies ORDER BY movie_id');
@@ -34,7 +41,6 @@ app.get('/api/movies', async (req, res) => {
   }
 });
 
-// Return all genres (fills the genre dropdown)
 app.get('/api/genres', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM genres ORDER BY genre_id');
@@ -45,7 +51,6 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
-// Return one movie by its id (for the Movie Details page later)
 app.get('/api/movies/:id', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM movies WHERE movie_id = $1', [req.params.id]);
