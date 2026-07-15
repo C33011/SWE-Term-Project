@@ -20,6 +20,7 @@ const HomePage = () => {
 
         const genresResponse = await fetch('/api/genres');
         const genresData = await genresResponse.json();
+        
 
         setMovies(moviesData);
         setGenres(genresData);
@@ -151,7 +152,7 @@ const HomePage = () => {
         >
           <option value="">All Genres</option>
           {genres.map((g) => (
-            <option key={g.genre_id} value={g.genre_id}>{g.genre_name}</option>
+            <option key={g.genre_id} value={g.genre_id}>{g.name}</option>
           ))}
         </select>
         <select style={{ padding: '8px' }} disabled>
