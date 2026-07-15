@@ -38,4 +38,21 @@ async function sendPasswordResetEmail(toEmail, token) {
   });
 }
 
+const sendProfileUpdateEmail = async (email) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Your Cinema E-Booking Profile Was Updated',
+    text: 'Hello! This is a confirmation that your profile information was recently updated. If you did not make these changes, please contact our support team immediately.',
+    html: '<p>Hello!</p><p>This is a confirmation that your profile information was recently updated. If you did not make these changes, please contact our support team immediately.</p>'
+  };
+
+  try {
+    await transporter.sendMail(mailOptions); // Make sure 'transporter' matches whatever variable you use in this file!
+    console.log(`Profile update email sent to ${email}`);
+  } catch (error) {
+    console.error('Error sending profile update email:', error);
+  }
+};
+
 module.exports = { sendVerificationEmail, sendPasswordResetEmail };

@@ -2,7 +2,43 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { sendVerificationEmail, sendPasswordResetEmail } = require('./email');
+const { sendVerificationEmail, sendPasswordResetEmail, sendProfileUpdateEmail } = require('./email');
+const { authenticate } = require('./middleware');
+
+// ============ CRYPTOGRAPHY SETUP ============
+// This uses AES-256-CBC to securely encrypt and decrypt credit card and address information.
+const ALGORITHM = 'aes-256-cbc';
+// Crucial: This key must be EXACTLY 32 characters long.
+// If not defined in your environment (.env file), it defaults to a fallback key.
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-32-character-safe-secret-key'; 
+const IV_LENGTH = 16; 
+
+// Reversible encryption function
+function encrypt(text) {
+  if (!text) return null;
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+// Reversible decryption function
+function decrypt(text) {
+  if (!text) return null;
+  try {
+    const textParts = text.split(':');
+    const iv = Buffer.from(textParts.shift(), 'hex');
+    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (err) {
+    console.error("Decryption failed. The value might be unencrypted text or corrupted:", err);
+    return text; // Return the raw text if decryption fails to avoid breaking existing unencrypted profiles
+  }
+}
 
 module.exports = function (pool) {
   const router = express.Router();
@@ -27,7 +63,7 @@ module.exports = function (pool) {
         return res.status(409).json({ error: 'An account with this email already exists.' });
       }
 
-      const passwordHash = await bcrypt.hash(password, 10); // SECURITY: never store plaintext
+      const passwordHash = await bcrypt.hash(password, 10); 
       const verifyToken = crypto.randomBytes(32).toString('hex');
 
       await pool.query(
@@ -94,7 +130,6 @@ module.exports = function (pool) {
         return res.status(401).json({ error: 'Invalid email or password.' });
       }
 
-      // TC2 exact message from the demo instructions:
       if (user.status !== 'Active') {
         return res.status(403).json({
           error: 'Account is not verified. Please check your email to verify your account.',
@@ -184,6 +219,99 @@ module.exports = function (pool) {
     } catch (err) {
       console.error('Reset-password error:', err);
       res.status(500).json({ error: 'Could not reset password.' });
+    }
+  });
+
+  // ============ 5. GET PROFILE (WITH DECRYPTION) ============
+  router.get('/profile', authenticate, async (req, res) => {
+    const userId = req.user.userId; 
+
+    try {
+      const result = await pool.query(
+        `SELECT first_name, last_name, email, phone, subscribe_to_promotions,
+                address, card1_num, card1_expiry, card2_num, card2_expiry, card3_num, card3_expiry 
+         FROM users WHERE user_id = $1`,
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const user = result.rows[0];
+
+      // Send the regular info normally, but run the decrypted fields through decrypt()
+      res.json({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        subscribe_to_promotions: user.subscribe_to_promotions,
+        address: decrypt(user.address),
+        card1_num: decrypt(user.card1_num),
+        card1_expiry: decrypt(user.card1_expiry),
+        card2_num: decrypt(user.card2_num),
+        card2_expiry: decrypt(user.card2_expiry),
+        card3_num: decrypt(user.card3_num),
+        card3_expiry: decrypt(user.card3_expiry)
+      });
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  // ============ 6. EDIT PROFILE (WITH ENCRYPTION) ============
+  router.put('/profile', authenticate, async (req, res) => {
+    const { 
+      firstName, lastName, phone, subscribeToPromotions, address,
+      card1Num, card1Expiry, card2Num, card2Expiry, card3Num, card3Expiry
+    } = req.body;
+    const userId = req.user.userId;
+    const email = req.user.email; 
+
+    if (!firstName || !lastName) {
+      return res.status(400).json({ error: 'First and last name are required.' });
+    }
+
+    try {
+      // Encrypt sensitive fields before saving to SQL
+      const encryptedAddress = encrypt(address);
+      const encCard1Num = encrypt(card1Num);
+      const encCard1Exp = encrypt(card1Expiry);
+      const encCard2Num = encrypt(card2Num);
+      const encCard2Exp = encrypt(card2Expiry);
+      const encCard3Num = encrypt(card3Num);
+      const encCard3Exp = encrypt(card3Expiry);
+
+      await pool.query(
+        `UPDATE users 
+         SET first_name = $1, 
+             last_name = $2, 
+             phone = $3,
+             subscribe_to_promotions = $4,
+             address = $5,
+             card1_num = $6, card1_expiry = $7,
+             card2_num = $8, card2_expiry = $9,
+             card3_num = $10, card3_expiry = $11,
+             updated_at = CURRENT_TIMESTAMP 
+         WHERE user_id = $12`,
+        [
+          firstName, lastName, phone || null, subscribeToPromotions === true, encryptedAddress,
+          encCard1Num, encCard1Exp, 
+          encCard2Num, encCard2Exp, 
+          encCard3Num, encCard3Exp,
+          userId
+        ]
+      );
+      
+      // Trigger the email notification
+      await sendProfileUpdateEmail(email);
+      
+      res.json({ message: 'Profile updated successfully!' });
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      res.status(500).json({ error: 'Could not update profile' });
     }
   });
 
