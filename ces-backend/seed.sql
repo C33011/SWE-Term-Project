@@ -253,6 +253,7 @@ INSERT INTO users (email, password_hash, first_name, last_name, phone, role, sta
                    subscribe_to_promotions, email_confirmed_at)
 VALUES
   ('admin@test.com',    '<PASTE-ADMIN-HASH>', 'Admin', 'User', '5555555555', 'admin',    'Active', FALSE, CURRENT_TIMESTAMP),
+  ('aar18497@uga.edu',    '<PASTE-ADMIN-HASH>', 'Admin', 'User', '5555555553', 'admin',    'Active', FALSE, CURRENT_TIMESTAMP),
   ('fanuser@test.com',  '<PASTE-USER-HASH>',  'Fan',   'User', '5555555551', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP),
   ('carduser@test.com', '<PASTE-USER-HASH>',  'Card',  'User', '5555555552', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP);
 
