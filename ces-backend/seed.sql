@@ -1,3 +1,6 @@
+INSERT INTO theatres (name, address) VALUES
+    ('Cinema E-Booking Theatre', '123 College Ave, Athens, GA 30601');
+
 INSERT INTO genres (name, description) VALUES
     ('Action',    'High-energy films featuring stunts, chases, and adventure'),
     ('Horror',    'Films designed to frighten and unsettle the audience'),
@@ -9,29 +12,29 @@ INSERT INTO genres (name, description) VALUES
     ('Romance',   'Films centered on love stories and relationships');
 
 
-INSERT INTO halls (hall_name, capacity, total_seats) VALUES
-    ('Hall A', 100, 100),
-    ('Hall B', 75,  75),
-    ('Hall C', 50,  50);
+INSERT INTO showrooms (theatre_id, showroom_name, number_of_seats) VALUES
+    ((SELECT theatre_id FROM theatres LIMIT 1), 'Showroom A', 100),
+    ((SELECT theatre_id FROM theatres LIMIT 1), 'Showroom B', 75),
+    ((SELECT theatre_id FROM theatres LIMIT 1), 'Showroom C', 50);
 
 
-INSERT INTO seats (hall_id, seat_row, seat_number, status)
+INSERT INTO seats (showroom_id, row_number, seat_number, status)
 SELECT 1, chr(64 + gs_row), gs_seat, 'available'
 FROM generate_series(1, 10) AS gs_row,
      generate_series(1, 10) AS gs_seat;
 
-INSERT INTO seats (hall_id, seat_row, seat_number, status)
+INSERT INTO seats (showroom_id, row_number, seat_number, status)
 SELECT 2, chr(64 + gs_row), gs_seat, 'available'
 FROM generate_series(1, 5) AS gs_row,
      generate_series(1, 15) AS gs_seat;
 
-INSERT INTO seats (hall_id, seat_row, seat_number, status)
+INSERT INTO seats (showroom_id, row_number, seat_number, status)
 SELECT 3, chr(64 + gs_row), gs_seat, 'available'
 FROM generate_series(1, 5) AS gs_row,
      generate_series(1, 10) AS gs_seat;
 
 
-INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_url, director, cast_members, status, release_date)
+INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_url, director, producer, cast_members, reviews, status, release_date)
 VALUES
 (
     'Toy Story 5',
@@ -41,7 +44,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/7veGbEIL1nvtVXVwFlqCs62zsvc.jpg',
     'https://www.youtube.com/embed/c51ND9Hdbw0',
     'Andrew Stanton',
+    'Pixar Animation Studios',
     'Tom Hanks, Tim Allen, Joan Cusack, Greta Lee, Conan O''Brien',
+    'A heartfelt return to familiar characters.',
     'Currently Running',
     '2026-06-19'
 ),
@@ -53,7 +58,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/bRwnj8WEKBCvmfeUNOukJPwB43K.jpg',
     'https://www.youtube.com/embed/TaaDkbG3I7g',
     'Curry Barker',
+    NULL,
     'Michael Johnston, Inde Navarrette, Cooper Tomlinson, Andy Richter',
+    NULL,
     'Currently Running',
     '2026-05-15'
 ),
@@ -65,7 +72,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/rhGx6E3qRNMgj3i5su2oukNHwIQ.jpg',
     'https://www.youtube.com/embed/0HjdiohVOik',
     'Kane Parsons',
+    NULL,
     'Chiwetel Ejiofor, Renate Reinsve, Mark Duplass, Finn Bennett, Lukita Maxwell',
+    NULL,
     'Currently Running',
     '2026-05-29'
 ),
@@ -77,7 +86,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/yihdXomYb5kTeSivtFndMy5iDmf.jpg',
     'https://www.youtube.com/embed/m08TxIsFTRI',
     'Phil Lord, Christopher Miller',
+    NULL,
     'Ryan Gosling, Sandra Hüller, James Ortiz, Lionel Boyce',
+    NULL,
     'Currently Running',
     '2026-03-20'
 ),
@@ -89,7 +100,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/3YMd9Ogae4rDKLWuAZFuse9xhc5.jpg',
     'https://www.youtube.com/embed/X21JsHLHnY8',
     'Travis Knight',
+    NULL,
     'Nicholas Galitzine, Camila Mendes, Jared Leto, Idris Elba, Alison Brie',
+    NULL,
     'Currently Running',
     '2026-06-05'
 ),
@@ -101,13 +114,15 @@ VALUES
     'https://image.tmdb.org/t/p/w500/bqOKJrZFR9KpqWE607dw6KOdKCj.jpg',
     'https://www.youtube.com/embed/0fZ58S-7QP0',
     'Michael Tiddes',
+    NULL,
     'Marlon Wayans, Shawn Wayans, Anna Faris, Regina Hall',
+    NULL,
     'Currently Running',
     '2026-06-05'
 );
 
 
-INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_url, director, cast_members, status, release_date)
+INSERT INTO movies (title, genre_id, rating, description, poster_url, trailer_url, director, producer, cast_members, reviews, status, release_date)
 VALUES
 (
     'Supergirl',
@@ -117,7 +132,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/xhei2GX9L2H1eQlrHeFw44VNLd1.jpg',
     'https://www.youtube.com/embed/s1-pfiVMKAs',
     'Craig Gillespie',
+    NULL,
     'Milly Alcock, Matthias Schoenaerts, Eve Ridley, Jason Momoa, David Corenswet',
+    NULL,
     'Coming Soon',
     '2026-06-26'
 ),
@@ -129,7 +146,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/tfgccePxnswMqhmtxafliLlcCVR.jpg',
     'https://www.youtube.com/embed/sNwzFhGwA94',
     'Jeff Tremaine',
+    NULL,
     'Johnny Knoxville, Steve-O, Chris Pontius, Wee Man, Dave England, Danger Ehren',
+    NULL,
     'Coming Soon',
     '2026-06-26'
 ),
@@ -141,7 +160,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/kzRAd7mj39ZY3FGNrDdZjqx56tn.jpg',
     'https://www.youtube.com/embed/vtEnjikCXyA',
     'Rod Lurie',
+    NULL,
     'Scott Eastwood, Colin Hanks, Aunjanue Ellis-Taylor, Taylor John Smith',
+    NULL,
     'Coming Soon',
     '2026-06-26'
 ),
@@ -153,7 +174,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/zibb9EBBCsCeXOUbEw0J6yA0vhZ.jpg',
     'https://www.youtube.com/embed/R704yP3dlXw',
     'Ahmed Khan',
+    NULL,
     'Akshay Kumar, Suniel Shetty, Disha Patani, Jacqueline Fernandez, Arshad Warsi',
+    NULL,
     'Coming Soon',
     '2026-06-26'
 ),
@@ -165,7 +188,9 @@ VALUES
     'https://image.tmdb.org/t/p/w500/gA1UBGxQp0xRaewFF5AE7Xdy1b3.jpg',
     'https://www.youtube.com/embed/2ZfuX4IBTXM',
     'Scott Waugh',
+    NULL,
     'Alan Ritchson, Owen Wilson, Rodrigo Santoro, Leila George, Adriana Barraza',
+    NULL,
     'Coming Soon',
     '2026-09-11'
 ),
@@ -177,91 +202,108 @@ VALUES
     'https://image.tmdb.org/t/p/w500/ztadKzIIR0ERYqpHteaPFtk7inP.jpg',
     'https://www.youtube.com/embed/TnHby2cxJzs',
     'Sébastien Vanicek',
+    NULL,
     'Souheila Yacoub, Tandi Wright, Hunter Doohan, Luciane Buchanan, Maude Davey',
+    NULL,
     'Coming Soon',
     '2026-07-10'
 );
 
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23 20:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24 20:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25 20:00:00', 100);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23', '14:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23', '17:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-23', '20:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24', '14:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24', '17:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-24', '20:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25', '14:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25', '17:00:00', 100, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Toy Story 5'), 1, '2026-06-25', '20:00:00', 100, 100);
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23 20:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24 20:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25 20:00:00', 75);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23', '14:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23', '17:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-23', '20:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24', '14:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24', '17:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-24', '20:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25', '14:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25', '17:00:00', 105, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Obsession'), 2, '2026-06-25', '20:00:00', 105, 75);
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23 20:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24 20:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25 20:00:00', 50);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23', '14:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23', '17:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-23', '20:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24', '14:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24', '17:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-24', '20:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25', '14:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25', '17:00:00', 110, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25', '20:00:00', 110, 50);
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23 20:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24 20:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25 14:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25 17:00:00', 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25 20:00:00', 100);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '20:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '20:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '20:00:00', 130, 100);
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23 20:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24 20:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25 14:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25 17:00:00', 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25 20:00:00', 75);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '20:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '20:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '20:00:00', 115, 75);
 
-INSERT INTO showtimes (movie_id, hall_id, show_datetime, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23 20:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24 20:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 14:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 17:00:00', 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25 20:00:00', 50);
+INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '20:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '20:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '20:00:00', 100, 50);
+
 
 INSERT INTO users (
-    email, password_hash, first_name, last_name, phone,
-    role, status, subscribe_to_promotions,
-    email_confirmation_token, email_confirmed_at
-) VALUES (
-    'admin@test.com',
-    '$2a$10$uvi9/IpJo012hO/k1iS4seWG3l/UCcO5g.nxmBKQSHSLGKTMIQjCG',
-    'Admin',
-    'User',
-    '5555555555',
-    'admin',
-    'Active',
-    FALSE,
-    NULL,
-    CURRENT_TIMESTAMP
+    email, password_hash, first_name, last_name, phone_number,
+    role, status, promotional_emails, email_confirmed_at
+) VALUES
+-- I manually hashed these passwords. The admin passswords are "admin" and the other user passwords are "password" -Tate
+  ('admin@test.com',    '$2a$10$zu3JCdb2Sd79x71ldjwsPuy8ZtiFic8DVxqbmCi/UNfi2dV.9LJC6', 'Admin', 'User', '5555555555', 'admin',    'Active', FALSE, CURRENT_TIMESTAMP),
+  ('aar18497@uga.edu',  '$2a$10$zu3JCdb2Sd79x71ldjwsPuy8ZtiFic8DVxqbmCi/UNfi2dV.9LJC6', 'Admin', 'User', '5555555553', 'admin',    'Active', FALSE, CURRENT_TIMESTAMP),
+  ('fanuser@test.com',  '$2a$10$WmuLMY3IwpUq3C0igsSX/OIE7J9UpYKzr1uW5mHHz2SlRKdZig/22',  'Fan',   'User', '5555555551', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP),
+  ('carduser@test.com', '$2a$10$WmuLMY3IwpUq3C0igsSX/OIE7J9UpYKzr1uW5mHHz2SlRKdZig/22',  'Card',  'User', '5555555552', 'customer', 'Active', TRUE,  CURRENT_TIMESTAMP);
+
+INSERT INTO favorite_movies (user_id, movie_id)
+VALUES (
+    (SELECT user_id FROM users WHERE email = 'fanuser@test.com'),
+    (SELECT movie_id FROM movies WHERE title = 'Toy Story 5')
 );
+
+INSERT INTO preference_profiles (user_id, favorite_genres, favorite_actors)
+VALUES (
+    (SELECT user_id FROM users WHERE email = 'fanuser@test.com'),
+    'Animation, Sci-Fi',
+    'Tom Hanks, Ryan Gosling'
+);
+
+INSERT INTO promotions (promo_code, discount_percentage, valid_until)
+VALUES
+    ('CES10', 10.00, '2026-12-31'),
+    ('SUMMER25', 25.00, '2026-08-31');
+
+INSERT INTO recommendation_engines (algorithm_version)
+VALUES ('v1.0');
