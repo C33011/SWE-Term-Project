@@ -1,10 +1,10 @@
-CREATE TABLE genres (
+CREATE TABLE IF NOT EXISTS genres (
     genre_id    SERIAL PRIMARY KEY,
     name        VARCHAR(255) NOT NULL,
     description VARCHAR(255)
 );
 
-CREATE TABLE movies (
+CREATE TABLE IF NOT EXISTS movies (
     movie_id     SERIAL PRIMARY KEY,
     title        VARCHAR(255) NOT NULL,
     genre_id     INT,
@@ -21,14 +21,14 @@ CREATE TABLE movies (
         REFERENCES genres(genre_id) ON DELETE SET NULL
 );
 
-CREATE TABLE halls (
+CREATE TABLE IF NOT EXISTS halls (
     hall_id     SERIAL PRIMARY KEY,
     hall_name   VARCHAR(255),
     capacity    INT,
     total_seats INT
 );
 
-CREATE TABLE seats (
+CREATE TABLE IF NOT EXISTS seats (
     seat_id     SERIAL PRIMARY KEY,
     hall_id     INT NOT NULL,
     seat_row    VARCHAR(10),
@@ -38,7 +38,7 @@ CREATE TABLE seats (
         REFERENCES halls(hall_id) ON DELETE CASCADE
 );
 
-CREATE TABLE showtimes (
+CREATE TABLE IF NOT EXISTS showtimes (
     showtime_id     SERIAL PRIMARY KEY,
     movie_id        INT NOT NULL,
     hall_id         INT,
@@ -50,14 +50,23 @@ CREATE TABLE showtimes (
         REFERENCES halls(hall_id) ON DELETE SET NULL
 );
 
-
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id                   SERIAL PRIMARY KEY,
     email                     VARCHAR(255) NOT NULL UNIQUE,
     password_hash             VARCHAR(255) NOT NULL,
     first_name                VARCHAR(100) NOT NULL,
     last_name                 VARCHAR(100) NOT NULL,
     phone                     VARCHAR(20),
+    
+    -- Added columns to map directly to the EditProfile.jsx frontend
+    address                   VARCHAR(255), 
+    card1_num                 VARCHAR(20),
+    card1_expiry              VARCHAR(5),
+    card2_num                 VARCHAR(20),
+    card2_expiry              VARCHAR(5),
+    card3_num                 VARCHAR(20),
+    card3_expiry              VARCHAR(5),
+    
     role                      VARCHAR(20) NOT NULL DEFAULT 'customer'
         CHECK (role IN ('admin', 'customer')),
     status                    VARCHAR(20) NOT NULL DEFAULT 'Inactive'
@@ -69,7 +78,7 @@ CREATE TABLE users (
     updated_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE password_reset_tokens (
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
     token_id    SERIAL PRIMARY KEY,
     user_id     INT NOT NULL,
     token_hash  VARCHAR(255) NOT NULL,
@@ -80,7 +89,7 @@ CREATE TABLE password_reset_tokens (
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE addresses (
+CREATE TABLE IF NOT EXISTS addresses (
     address_id     SERIAL PRIMARY KEY,
     user_id        INT NOT NULL UNIQUE,
     street_address VARCHAR(255) NOT NULL,
@@ -91,7 +100,7 @@ CREATE TABLE addresses (
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE payment_cards (
+CREATE TABLE IF NOT EXISTS payment_cards (
     card_id                 SERIAL PRIMARY KEY,
     user_id                 INT NOT NULL,
     cardholder_name         VARCHAR(255) NOT NULL,
@@ -106,7 +115,7 @@ CREATE TABLE payment_cards (
         REFERENCES users(user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE favorite_movies (
+CREATE TABLE IF NOT EXISTS favorite_movies (
     user_id    INT NOT NULL,
     movie_id   INT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -126,6 +135,9 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop trigger if it exists to prevent errors when re-running the schema
+DROP TRIGGER IF EXISTS trg_payment_card_limit ON payment_cards;
 
 CREATE TRIGGER trg_payment_card_limit
     BEFORE INSERT ON payment_cards

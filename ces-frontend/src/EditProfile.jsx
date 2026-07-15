@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getToken } from './auth'; // 1. IMPORT YOUR GETTOKEN HELPER (Change to '../auth' if they are in different folders)
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -19,19 +20,22 @@ const EditProfile = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      console.log("Attempting to fetch profile..."); // Debug log 1
+      const token = getToken(); // 2. GET THE TOKEN CORRECTLY
+
+      if (!token) {
+        console.error("No token found. User is not logged in.");
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch('/api/auth/profile', {
           headers: { 
-            'Authorization': `Bearer ${localStorage.getItem('token')}` 
+            'Authorization': `Bearer ${token}` // 3. USE TOKEN VARIABLE HERE
           }
         });
-        
-        console.log("Response status:", response.status); // Debug log 2
-        
         if (response.ok) {
           const data = await response.json();
-          console.log("Successfully fetched profile data:", data); // Debug log 3
           setProfile({
             firstName: data.first_name || '',
             lastName: data.last_name || '',
@@ -47,11 +51,10 @@ const EditProfile = () => {
             card3Expiry: data.card3_expiry || ''
           });
         } else {
-          const errorText = await response.text();
-          console.error("Backend returned an error:", errorText);
+          console.error("Failed to load profile details. Server returned status:", response.status);
         }
       } catch (err) {
-        console.error('Failed to fetch profile due to connection/network error:', err);
+        console.error('Failed to fetch profile:', err);
       } finally {
         setLoading(false);
       }
@@ -61,12 +64,19 @@ const EditProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const token = getToken(); // 4. GET THE TOKEN CORRECTLY FOR SAVING AS WELL
+
+    if (!token) {
+      setMessage("Error: You must be logged in to save changes.");
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}` // 5. USE TOKEN VARIABLE HERE
         },
         body: JSON.stringify({
           firstName: profile.firstName,
@@ -85,7 +95,7 @@ const EditProfile = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setMessage('Profile updated successfully! Check your email.');
+        setMessage('Profile updated successfully!');
       } else {
         setMessage(data.error || 'Update failed.');
       }
