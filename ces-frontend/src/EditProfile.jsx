@@ -17,6 +17,8 @@ const EditProfile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwMsg, setPwMsg] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -105,6 +107,34 @@ const EditProfile = () => {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwMsg('');
+    if (!pw.current) return setPwMsg('Current password is required.');
+    if (pw.next.length < 8) return setPwMsg('New password must be at least 8 characters.');
+    if (pw.next !== pw.confirm) return setPwMsg('New passwords do not match.');
+
+    const token = getToken();
+    if (!token) return setPwMsg('You must be logged in to change your password.');
+
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setPwMsg(data.message || 'Password changed successfully!');
+        setPw({ current: '', next: '', confirm: '' });
+      } else {
+        setPwMsg(data.error || 'Could not change password.');
+      }
+    } catch {
+      setPwMsg('Something went wrong. Please try again.');
+    }
+  };
+
   if (loading) return <div style={{ padding: '20px', fontFamily: 'Arial' }}>Loading profile...</div>;
 
   return (
@@ -166,6 +196,21 @@ const EditProfile = () => {
 
         <button type="submit" style={{ padding: '12px', backgroundColor: '#007BFF', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px', alignSelf: 'flex-start' }}>
           Save Changes
+        </button>
+      </form>
+
+      <hr style={{ margin: '32px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+      <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '420px' }}>
+        <h3>Change Password</h3>
+        <label style={{ fontWeight: 'bold' }}>Current Password *</label>
+        <input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} style={{ padding: '8px' }} required />
+        <label style={{ fontWeight: 'bold' }}>New Password * (min 8 characters)</label>
+        <input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} style={{ padding: '8px' }} required minLength={8} />
+        <label style={{ fontWeight: 'bold' }}>Confirm New Password *</label>
+        <input type="password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} style={{ padding: '8px' }} required minLength={8} />
+        {pwMsg && <p style={{ fontWeight: 'bold', color: pwMsg.includes('successfully') ? 'green' : 'red' }}>{pwMsg}</p>}
+        <button type="submit" style={{ padding: '12px', backgroundColor: '#007BFF', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px', alignSelf: 'flex-start' }}>
+          Update Password
         </button>
       </form>
     </div>

@@ -5,15 +5,10 @@ const crypto = require('crypto');
 const { sendVerificationEmail, sendPasswordResetEmail, sendProfileUpdateEmail } = require('./email');
 const { authenticate } = require('./middleware');
 
-
-// ============ CRYPTOGRAPHY SETUP ============
-// This uses AES-256-CBC to securely encrypt and decrypt credit card and address information.
 const ALGORITHM = 'aes-256-cbc';
-
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '12345678901234567890123456789012';
-const IV_LENGTH = 16; 
+const IV_LENGTH = 16;
 
-// Reversible encryption function
 function encrypt(text) {
   if (!text) return null;
   const iv = crypto.randomBytes(IV_LENGTH);
@@ -23,7 +18,6 @@ function encrypt(text) {
   return iv.toString('hex') + ':' + encrypted.toString('hex');
 }
 
-// Reversible decryption function
 function decrypt(text) {
   if (!text) return null;
   try {
@@ -35,15 +29,44 @@ function decrypt(text) {
     decrypted = Buffer.concat([decrypted, decipher.final()]);
     return decrypted.toString();
   } catch (err) {
-    console.error("Decryption failed. The value might be unencrypted text or corrupted:", err);
-    return text; // Return the raw text if decryption fails to avoid breaking existing unencrypted profiles
+    console.error('Decryption failed:', err);
+    return text;
   }
+}
+
+function expiryToDate(mmYy) {
+  if (!mmYy || !String(mmYy).trim()) return null;
+  const match = String(mmYy).trim().match(/^(\d{1,2})\s*\/\s*(\d{2})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return `${year}-${String(month).padStart(2, '0')}-01`;
+}
+
+function dateToExpiry(value) {
+  if (!value) return '';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const year = String(d.getUTCFullYear()).slice(-2);
+  return `${month}/${year}`;
+}
+
+function validateNewPassword(password) {
+  if (!password || password.length < 8) {
+    return 'Password must be at least 8 characters.';
+  }
+  return null;
+}
+
+async function hashPassword(password) {
+  return bcrypt.hash(password, 10);
 }
 
 module.exports = function (pool) {
   const router = express.Router();
 
-  // ============ 1. REGISTRATION ============
   router.post('/register', async (req, res) => {
     const { firstName, lastName, email, phone, password, subscribeToPromotions } = req.body;
 
@@ -53,8 +76,9 @@ module.exports = function (pool) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const passwordError = validateNewPassword(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     try {
@@ -63,13 +87,13 @@ module.exports = function (pool) {
         return res.status(409).json({ error: 'An account with this email already exists.' });
       }
 
-      const passwordHash = await bcrypt.hash(password, 10); 
+      const passwordHash = await hashPassword(password);
       const verifyToken = crypto.randomBytes(32).toString('hex');
 
       await pool.query(
         `INSERT INTO users
-           (email, password_hash, first_name, last_name, phone, role, status,
-            subscribe_to_promotions, email_confirmation_token)
+           (email, password_hash, first_name, last_name, phone_number, role, status,
+            promotional_emails, email_confirmation_token)
          VALUES ($1, $2, $3, $4, $5, 'customer', 'Inactive', $6, $7)`,
         [email, passwordHash, firstName, lastName, phone || null,
          subscribeToPromotions === true, verifyToken]
@@ -86,7 +110,6 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 2. EMAIL VERIFICATION ============
   router.post('/verify/:token', async (req, res) => {
     try {
       const result = await pool.query(
@@ -109,7 +132,6 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 3. LOGIN ============
   router.post('/login', async (req, res) => {
     const { email, password, rememberMe } = req.body;
 
@@ -157,7 +179,6 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 4a. FORGOT PASSWORD ============
   router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
@@ -184,11 +205,11 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 4b. RESET PASSWORD ============
   router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    const passwordError = validateNewPassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
     try {
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -204,7 +225,7 @@ module.exports = function (pool) {
       }
 
       const { token_id, user_id } = result.rows[0];
-      const passwordHash = await bcrypt.hash(newPassword, 10);
+      const passwordHash = await hashPassword(newPassword);
 
       await pool.query(
         `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2`,
@@ -222,14 +243,56 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 5. GET PROFILE (WITH DECRYPTION) ============
-  router.get('/profile', authenticate, async (req, res) => {
-    const userId = req.user.userId; 
+  router.put('/change-password', authenticate, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.userId;
+
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required.' });
+    }
+
+    const passwordError = validateNewPassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
+    }
 
     try {
       const result = await pool.query(
-        `SELECT first_name, last_name, email, phone, subscribe_to_promotions,
-                address, card1_num, card1_expiry, card2_num, card2_expiry, card3_num, card3_expiry 
+        'SELECT password_hash FROM users WHERE user_id = $1',
+        [userId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+
+      const currentOk = await bcrypt.compare(currentPassword, result.rows[0].password_hash);
+      if (!currentOk) {
+        return res.status(401).json({ error: 'Current password is incorrect.' });
+      }
+
+      if (await bcrypt.compare(newPassword, result.rows[0].password_hash)) {
+        return res.status(400).json({ error: 'New password must be different from the current password.' });
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+      await pool.query(
+        `UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2`,
+        [passwordHash, userId]
+      );
+
+      res.json({ message: 'Password changed successfully!' });
+    } catch (err) {
+      console.error('Change-password error:', err);
+      res.status(500).json({ error: 'Could not change password.' });
+    }
+  });
+
+  router.get('/profile', authenticate, async (req, res) => {
+    const userId = req.user.userId;
+
+    try {
+      const result = await pool.query(
+        `SELECT first_name, last_name, email, phone_number, promotional_emails, mailing_address
          FROM users WHERE user_id = $1`,
         [userId]
       );
@@ -239,21 +302,29 @@ module.exports = function (pool) {
       }
 
       const user = result.rows[0];
+      const cardsResult = await pool.query(
+        `SELECT card_number, expiration_date
+         FROM credit_cards
+         WHERE user_id = $1
+         ORDER BY card_id
+         LIMIT 3`,
+        [userId]
+      );
 
-      // Send the regular info normally, but run the decrypted fields through decrypt()
+      const cards = cardsResult.rows;
       res.json({
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
-        phone: user.phone,
-        subscribe_to_promotions: user.subscribe_to_promotions,
-        address: decrypt(user.address),
-        card1_num: decrypt(user.card1_num),
-        card1_expiry: decrypt(user.card1_expiry),
-        card2_num: decrypt(user.card2_num),
-        card2_expiry: decrypt(user.card2_expiry),
-        card3_num: decrypt(user.card3_num),
-        card3_expiry: decrypt(user.card3_expiry)
+        phone: user.phone_number,
+        subscribe_to_promotions: user.promotional_emails,
+        address: decrypt(user.mailing_address),
+        card1_num: decrypt(cards[0]?.card_number),
+        card1_expiry: dateToExpiry(cards[0]?.expiration_date),
+        card2_num: decrypt(cards[1]?.card_number),
+        card2_expiry: dateToExpiry(cards[1]?.expiration_date),
+        card3_num: decrypt(cards[2]?.card_number),
+        card3_expiry: dateToExpiry(cards[2]?.expiration_date),
       });
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -261,57 +332,81 @@ module.exports = function (pool) {
     }
   });
 
-  // ============ 6. EDIT PROFILE (WITH ENCRYPTION) ============
   router.put('/profile', authenticate, async (req, res) => {
-    const { 
+    const {
       firstName, lastName, phone, subscribeToPromotions, address,
-      card1Num, card1Expiry, card2Num, card2Expiry, card3Num, card3Expiry
+      card1Num, card1Expiry, card2Num, card2Expiry, card3Num, card3Expiry,
     } = req.body;
     const userId = req.user.userId;
-    const email = req.user.email; 
+    const email = req.user.email;
 
     if (!firstName || !lastName) {
       return res.status(400).json({ error: 'First and last name are required.' });
     }
 
-    try {
-      // Encrypt sensitive fields before saving to SQL
-      const encryptedAddress = encrypt(address);
-      const encCard1Num = encrypt(card1Num);
-      const encCard1Exp = encrypt(card1Expiry);
-      const encCard2Num = encrypt(card2Num);
-      const encCard2Exp = encrypt(card2Expiry);
-      const encCard3Num = encrypt(card3Num);
-      const encCard3Exp = encrypt(card3Expiry);
+    const cardInputs = [
+      { num: card1Num, expiry: card1Expiry },
+      { num: card2Num, expiry: card2Expiry },
+      { num: card3Num, expiry: card3Expiry },
+    ];
 
-      await pool.query(
-        `UPDATE users 
-         SET first_name = $1, 
-             last_name = $2, 
-             phone = $3,
-             subscribe_to_promotions = $4,
-             address = $5,
-             card1_num = $6, card1_expiry = $7,
-             card2_num = $8, card2_expiry = $9,
-             card3_num = $10, card3_expiry = $11,
-             updated_at = CURRENT_TIMESTAMP 
-         WHERE user_id = $12`,
+    const cardsToSave = [];
+    for (const card of cardInputs) {
+      const num = card.num ? String(card.num).trim() : '';
+      if (!num) continue;
+      const expirationDate = expiryToDate(card.expiry);
+      if (!expirationDate) {
+        return res.status(400).json({ error: 'Each payment card needs a valid expiry in MM/YY format.' });
+      }
+      cardsToSave.push({ num, expirationDate });
+    }
+
+    if (cardsToSave.length > 3) {
+      return res.status(400).json({ error: 'Users may store at most 3 payment cards.' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        `UPDATE users
+         SET first_name = $1,
+             last_name = $2,
+             phone_number = $3,
+             promotional_emails = $4,
+             mailing_address = $5,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $6`,
         [
-          firstName, lastName, phone || null, subscribeToPromotions === true, encryptedAddress,
-          encCard1Num, encCard1Exp, 
-          encCard2Num, encCard2Exp, 
-          encCard3Num, encCard3Exp,
-          userId
+          firstName,
+          lastName,
+          phone || null,
+          subscribeToPromotions === true,
+          encrypt(address),
+          userId,
         ]
       );
-      
-      // Trigger the email notification
+
+      await client.query('DELETE FROM credit_cards WHERE user_id = $1', [userId]);
+
+      for (const card of cardsToSave) {
+        await client.query(
+          `INSERT INTO credit_cards (user_id, card_number, expiration_date, billing_address)
+           VALUES ($1, $2, $3, $4)`,
+          [userId, encrypt(card.num), card.expirationDate, address || null]
+        );
+      }
+
+      await client.query('COMMIT');
       await sendProfileUpdateEmail(email);
-      
       res.json({ message: 'Profile updated successfully!' });
     } catch (err) {
+      await client.query('ROLLBACK');
       console.error('Error updating profile:', err);
       res.status(500).json({ error: 'Could not update profile' });
+    } finally {
+      client.release();
     }
   });
 
