@@ -1,6 +1,5 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
-import HomePage from './HomePage';
+import HomePage from './Homepage';
 import MovieDetails from './MovieDetails';
 import BookingPage from './BookingPage';
 import Register from './pages/Register';
@@ -9,61 +8,37 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AdminHome from './pages/AdminHome';
-import { getUser, logout } from './auth';
-import EditProfile from './EditProfile'; 
+import EditProfile from './EditProfile';
 import Favorites from './Favorites';
-
+import { getUser, logout } from './auth';
 
 function NavBar() {
   const user = getUser();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();               // clears the stored token = session ended
-    navigate('/login');
-
-
-  };
-
   return (
-    <nav style={{ display: 'flex', gap: '15px', padding: '12px 20px', borderBottom: '1px solid #ddd', alignItems: 'center', fontFamily: 'Arial' }}>
-      
-      {/*Grouped CES and My Favorite Movies on the left */}
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-        <Link to="/" style={{ fontWeight: 'bold', textDecoration: 'none', fontSize: '18px' }}>🎬 CES</Link>
-        {user && (
-          <Link to="/favorites" style={{ textDecoration: 'none', color: '#007BFF', fontWeight: 'bold' }}>
-            My Favorite Movies
-          </Link>
-        )}
-      </div>
-
+    <nav style={{ display: 'flex', gap: '15px', padding: '12px 20px', borderBottom: '1px solid #ddd', alignItems: 'center' }}>
+      <Link to="/">🎬 CES</Link>
+      {user?.role === 'customer' && <Link to="/favorites">My Favorite Movies</Link>}
       <div style={{ marginLeft: 'auto', display: 'flex', gap: '15px', alignItems: 'center' }}>
-        {user ? (
-          <>
-            <span>Hi, {user.firstName}!</span>
-            {user.role === 'admin' && <Link to="/admin">Admin Portal</Link>}
-            
-            {/* Edit Profile link between greeting and logout  */}
-            <Link to="/edit-profile" style={{ textDecoration: 'none', color: '#333' }}>Edit Profile</Link>
-            
-            <button onClick={handleLogout} style={{ cursor: 'pointer', padding: '6px 12px' }}>Logout</button>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Sign Up</Link>
-          </>
-        )}
+        {user ? <>
+          <span>Hi, {user.firstName}!</span>
+          {user.role === 'admin' && <Link to="/admin">Admin Portal</Link>}
+          <Link to="/edit-profile">Edit Profile</Link>
+          <button onClick={() => { logout(); navigate('/login'); }}>Logout</button>
+        </> : <><Link to="/login">Login</Link><Link to="/register">Sign Up</Link></>}
       </div>
     </nav>
   );
 }
 
+function ProtectedRoute({ children }) {
+  return getUser() ? children : <Navigate to="/login" replace />;
+}
 function AdminRoute({ children }) {
-  const user = getUser();
-  if (!user || user.role !== 'admin') return <Navigate to="/login" replace />;
-  return children;
+  return getUser()?.role === 'admin' ? children : <Navigate to="/login" replace />;
+}
+function CustomerRoute({ children }) {
+  return getUser()?.role === 'customer' ? children : <Navigate to="/login" replace />;
 }
 
 function App() {
@@ -80,10 +55,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />
-        <Route path="/edit-profile" element={<EditProfile />} />
-        <Route path="/favorites" element={<Favorites />} />
-        
-        
+        <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+        <Route path="/favorites" element={<CustomerRoute><Favorites /></CustomerRoute>} />
       </Routes>
     </BrowserRouter>
   );

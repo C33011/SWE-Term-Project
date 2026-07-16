@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS credit_cards (
     user_id          INT NOT NULL,
     card_number      TEXT NOT NULL,
     expiration_date  DATE NOT NULL,
-    billing_address  VARCHAR(255),
+    billing_address  TEXT,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_credit_cards_user_id FOREIGN KEY (user_id)
         REFERENCES users(user_id) ON DELETE CASCADE
