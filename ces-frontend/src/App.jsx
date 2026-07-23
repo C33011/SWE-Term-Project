@@ -8,6 +8,11 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AdminHome from './pages/AdminHome';
+import ManageMovies from './pages/ManageMovies';
+import AddMovie from './pages/AddMovie';
+import AddPromotion from './pages/AddPromotion';
+import ManageUsers from './pages/ManageUsers';
+import ScheduleShowtime from './pages/ScheduleShowtime';
 import EditProfile from './EditProfile';
 import Favorites from './Favorites';
 import { getUser, logout } from './auth';
@@ -55,6 +60,12 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/admin" element={<AdminRoute><AdminHome /></AdminRoute>} />
+        <Route path="/admin/movies" element={<AdminRoute><ManageMovies /></AdminRoute>} />
+        <Route path="/admin/movies/add" element={<AdminRoute><AddMovie /></AdminRoute>} />
+        <Route path="/admin/movies/edit/:id" element={<AdminRoute><AddMovie /></AdminRoute>} />
+        <Route path="/admin/promotions/add" element={<AdminRoute><AddPromotion /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><ManageUsers /></AdminRoute>} />
+        <Route path="/admin/showtimes/add" element={<AdminRoute><ScheduleShowtime /></AdminRoute>} />
         <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
         <Route path="/favorites" element={<CustomerRoute><Favorites /></CustomerRoute>} />
       </Routes>

@@ -59,7 +59,9 @@ CREATE TABLE IF NOT EXISTS shows (
     CONSTRAINT fk_shows_movie_id FOREIGN KEY (movie_id)
         REFERENCES movies(movie_id) ON DELETE CASCADE,
     CONSTRAINT fk_shows_showroom_id FOREIGN KEY (showroom_id)
-        REFERENCES showrooms(showroom_id) ON DELETE SET NULL
+        REFERENCES showrooms(showroom_id) ON DELETE SET NULL,
+    CONSTRAINT uq_shows_showroom_datetime
+        UNIQUE (showroom_id, show_date, show_time)
 );
 
 CREATE TABLE IF NOT EXISTS users (
