@@ -53,7 +53,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/movies/:id" element={<MovieDetails />} />
-        <Route path="/booking/:id" element={<BookingPage />} />
+        <Route path="/booking/:showId" element={<BookingPage />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify/:token" element={<VerifyEmail />} />

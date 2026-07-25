@@ -91,6 +91,54 @@ app.get('/api/showrooms', async (req, res) => {
   }
 });
 
+// Seat map for one show: all seats in the room + whether each is booked for THIS show
+app.get('/api/shows/:showId/seats', async (req, res) => {
+  try {
+    const { showId } = req.params;
+
+    const showResult = await pool.query(
+      `SELECT s.show_id, s.showroom_id, s.show_date, s.show_time,
+              r.showroom_name, m.title AS movie_title, s.movie_id
+         FROM shows s
+         LEFT JOIN showrooms r ON r.showroom_id = s.showroom_id
+         LEFT JOIN movies m ON m.movie_id = s.movie_id
+        WHERE s.show_id = $1`,
+      [showId]
+    );
+    if (showResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+    const show = showResult.rows[0];
+
+    const seatsResult = await pool.query(
+      `SELECT seat_id, row_number, seat_number
+         FROM seats
+        WHERE showroom_id = $1
+        ORDER BY row_number, seat_number`,
+      [show.showroom_id]
+    );
+
+    const bookedResult = await pool.query(
+      `SELECT seat_id FROM tickets WHERE show_id = $1`,
+      [showId]
+    );
+    const bookedIds = new Set(bookedResult.rows.map((r) => r.seat_id));
+
+    const seats = seatsResult.rows.map((seat) => ({
+      seatId: seat.seat_id,
+      row: seat.row_number,
+      number: seat.seat_number,
+      label: `${seat.row_number}${seat.seat_number}`,
+      booked: bookedIds.has(seat.seat_id),
+    }));
+
+    res.json({ show, seats });
+  } catch (error) {
+    console.error('Error fetching seat map:', error);
+    res.status(500).json({ error: 'Failed to fetch seat map' });
+  }
+});
+
 app.post('/api/movies', authenticate, requireAdmin, async (req, res) => {
   const {
     title, genreId, rating, description, posterUrl, trailerUrl,
