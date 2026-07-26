@@ -18,11 +18,13 @@ const pool = new Pool({
 
 const authRoutes = require('./auth');
 const cardRoutes = require('./cards');
+const checkoutRoutes = require('./checkout');
 const { authenticate, requireAdmin, requireCustomer } = require('./middleware');
 const { sendPromotionEmail } = require('./email');
 
 app.use('/api/auth', authRoutes(pool));
 app.use('/api/profile/cards', cardRoutes(pool));
+app.use('/api/checkout', checkoutRoutes(pool));
 
 app.get('/api/admin/ping', authenticate, requireAdmin, (req, res) => {
   res.json({ message: 'Admin access confirmed' });
