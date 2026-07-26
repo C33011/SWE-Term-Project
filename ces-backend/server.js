@@ -18,10 +18,67 @@ const pool = new Pool({
 
 const authRoutes = require('./auth');
 const cardRoutes = require('./cards');
+const checkoutRoutes = require('./checkout');
 const { authenticate, requireAdmin, requireCustomer } = require('./middleware');
+const { sendPromotionEmail } = require('./email');
+
+function isValidHttpUrl(value) {
+  try {
+    const parsed = new URL(String(value));
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function validateMovieInput(body) {
+  const requiredTextFields = [
+    ['title', 'Title'],
+    ['rating', 'Rating'],
+    ['description', 'Description'],
+    ['posterUrl', 'Poster URL'],
+    ['trailerUrl', 'Trailer URL'],
+    ['director', 'Director'],
+    ['castMembers', 'Cast'],
+  ];
+
+  for (const [field, label] of requiredTextFields) {
+    if (!body[field] || !String(body[field]).trim()) {
+      return `${label} is required.`;
+    }
+  }
+
+  const genreId = Number(body.genreId);
+  if (!Number.isInteger(genreId) || genreId <= 0) {
+    return 'Genre is required.';
+  }
+
+  if (!['G', 'PG', 'PG-13', 'R', 'NC-17'].includes(body.rating)) {
+    return 'Please select a valid movie rating.';
+  }
+
+  if (!['Currently Running', 'Coming Soon'].includes(body.status)) {
+    return 'Status must be Currently Running or Coming Soon.';
+  }
+
+  if (!body.releaseDate || Number.isNaN(Date.parse(body.releaseDate))) {
+    return 'A valid release date is required.';
+  }
+
+  if (!isValidHttpUrl(body.posterUrl)) {
+    return 'Poster URL must be a valid http or https URL.';
+  }
+
+  if (!isValidHttpUrl(body.trailerUrl)) {
+    return 'Trailer URL must be a valid http or https URL.';
+  }
+
+  return null;
+}
 
 app.use('/api/auth', authRoutes(pool));
 app.use('/api/profile/cards', cardRoutes(pool));
+app.use('/api/checkout', checkoutRoutes(pool));
 
 app.get('/api/admin/ping', authenticate, requireAdmin, (req, res) => {
   res.json({ message: 'Admin access confirmed' });
@@ -49,6 +106,25 @@ app.get('/api/genres', async (req, res) => {
   }
 });
 
+app.get('/api/movies/:id/shows', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT s.show_id, s.movie_id, s.show_date, s.show_time, s.duration,
+              s.available_seats, s.showroom_id, r.showroom_name
+       FROM shows s
+       LEFT JOIN showrooms r ON r.showroom_id = s.showroom_id
+       WHERE s.movie_id = $1
+         AND (s.show_date + s.show_time) >= CURRENT_TIMESTAMP
+       ORDER BY s.show_date, s.show_time`,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching showtimes:', error);
+    res.status(500).json({ error: 'Failed to fetch showtimes' });
+  }
+});
+
 app.get('/api/movies/:id', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM movies WHERE movie_id = $1', [req.params.id]);
@@ -57,6 +133,357 @@ app.get('/api/movies/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching movie:', error);
     res.status(500).json({ error: 'Failed to fetch movie' });
+  }
+});
+
+app.get('/api/showrooms', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT showroom_id, showroom_name, number_of_seats FROM showrooms ORDER BY showroom_id'
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching showrooms:', error);
+    res.status(500).json({ error: 'Failed to fetch showrooms' });
+  }
+});
+
+// Seat map for one show: all seats in the room + whether each is booked for THIS show
+app.get('/api/shows/:showId/seats', async (req, res) => {
+  try {
+    const { showId } = req.params;
+
+    const showResult = await pool.query(
+      `SELECT s.show_id, s.showroom_id, s.show_date, s.show_time,
+              r.showroom_name, m.title AS movie_title, s.movie_id
+         FROM shows s
+         LEFT JOIN showrooms r ON r.showroom_id = s.showroom_id
+         LEFT JOIN movies m ON m.movie_id = s.movie_id
+        WHERE s.show_id = $1`,
+      [showId]
+    );
+    if (showResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+    const show = showResult.rows[0];
+
+    const seatsResult = await pool.query(
+      `SELECT seat_id, row_number, seat_number
+         FROM seats
+        WHERE showroom_id = $1
+        ORDER BY row_number, seat_number`,
+      [show.showroom_id]
+    );
+
+    const bookedResult = await pool.query(
+      `SELECT seat_id FROM tickets WHERE show_id = $1`,
+      [showId]
+    );
+    const bookedIds = new Set(bookedResult.rows.map((r) => r.seat_id));
+
+    const seats = seatsResult.rows.map((seat) => ({
+      seatId: seat.seat_id,
+      row: seat.row_number,
+      number: seat.seat_number,
+      label: `${seat.row_number}${seat.seat_number}`,
+      booked: bookedIds.has(seat.seat_id),
+    }));
+
+    res.json({ show, seats });
+  } catch (error) {
+    console.error('Error fetching seat map:', error);
+    res.status(500).json({ error: 'Failed to fetch seat map' });
+  }
+});
+
+app.post('/api/movies', authenticate, requireAdmin, async (req, res) => {
+  const {
+    title, genreId, rating, description, posterUrl, trailerUrl,
+    director, producer, castMembers, reviews, status, releaseDate,
+  } = req.body;
+
+  const validationError = validateMovieInput(req.body);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
+  try {
+    if (genreId) {
+      const genre = await pool.query('SELECT genre_id FROM genres WHERE genre_id = $1', [genreId]);
+      if (genre.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid genre.' });
+      }
+    }
+
+    const result = await pool.query(
+      `INSERT INTO movies
+         (title, genre_id, rating, description, poster_url, trailer_url,
+          director, producer, cast_members, reviews, status, release_date)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [
+        title.trim(),
+        genreId || null,
+        rating || null,
+        description || null,
+        posterUrl || null,
+        trailerUrl || null,
+        director || null,
+        producer || null,
+        castMembers || null,
+        reviews || null,
+        status,
+        releaseDate || null,
+      ]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error adding movie:', error);
+    res.status(500).json({ error: 'Failed to add movie' });
+  }
+});
+
+app.put('/api/movies/:id', authenticate, requireAdmin, async (req, res) => {
+  const {
+    title, genreId, rating, description, posterUrl, trailerUrl,
+    director, producer, castMembers, reviews, status, releaseDate,
+  } = req.body;
+
+  const validationError = validateMovieInput(req.body);
+  if (validationError) {
+    return res.status(400).json({ error: validationError });
+  }
+
+  try {
+    if (genreId) {
+      const genre = await pool.query('SELECT genre_id FROM genres WHERE genre_id = $1', [genreId]);
+      if (genre.rows.length === 0) {
+        return res.status(400).json({ error: 'Invalid genre.' });
+      }
+    }
+
+    const result = await pool.query(
+      `UPDATE movies SET
+         title = $1, genre_id = $2, rating = $3, description = $4,
+         poster_url = $5, trailer_url = $6, director = $7, producer = $8,
+         cast_members = $9, reviews = $10, status = $11, release_date = $12
+       WHERE movie_id = $13
+       RETURNING *`,
+      [
+        title.trim(),
+        genreId || null,
+        rating || null,
+        description || null,
+        posterUrl || null,
+        trailerUrl || null,
+        director || null,
+        producer || null,
+        castMembers || null,
+        reviews || null,
+        status,
+        releaseDate || null,
+        req.params.id,
+      ]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Movie not found.' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating movie:', error);
+    res.status(500).json({ error: 'Failed to update movie' });
+  }
+});
+
+app.delete('/api/movies/:id', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM movies WHERE movie_id = $1 RETURNING movie_id',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Movie not found.' });
+    }
+    res.json({ message: 'Movie deleted.' });
+  } catch (error) {
+    console.error('Error deleting movie:', error);
+    res.status(500).json({ error: 'Failed to delete movie' });
+  }
+});
+
+app.post('/api/shows', authenticate, requireAdmin, async (req, res) => {
+  const movieId = Number(req.body.movieId);
+  const showroomId = Number(req.body.showroomId);
+  const { showDate, showTime } = req.body;
+  const duration = Number(req.body.duration || 120);
+
+  if (!Number.isInteger(movieId) || movieId <= 0 ||
+      !Number.isInteger(showroomId) || showroomId <= 0 ||
+      !showDate || !showTime) {
+    return res.status(400).json({
+      error: 'Movie, showroom, date, and time are required.',
+    });
+  }
+
+  if (!Number.isInteger(duration) || duration < 1 || duration > 600) {
+    return res.status(400).json({ error: 'Show duration must be between 1 and 600 minutes.' });
+  }
+
+  try {
+    const futureCheck = await pool.query(
+      `SELECT ($1::date + $2::time) > CURRENT_TIMESTAMP AS is_future`,
+      [showDate, showTime]
+    );
+    if (!futureCheck.rows[0].is_future) {
+      return res.status(400).json({ error: 'Showtime must be scheduled in the future.' });
+    }
+
+    const movie = await pool.query('SELECT movie_id FROM movies WHERE movie_id = $1', [movieId]);
+    if (movie.rows.length === 0) {
+      return res.status(400).json({ error: 'Movie not found.' });
+    }
+
+    const room = await pool.query(
+      'SELECT showroom_id, number_of_seats FROM showrooms WHERE showroom_id = $1',
+      [showroomId]
+    );
+    if (room.rows.length === 0) {
+      return res.status(400).json({ error: 'Showroom not found.' });
+    }
+
+    const conflict = await pool.query(
+      `SELECT s.show_id, m.title, s.show_date, s.show_time
+         FROM shows s
+         JOIN movies m ON m.movie_id = s.movie_id
+        WHERE s.showroom_id = $1
+          AND (s.show_date + s.show_time) <
+              ($2::date + $3::time + make_interval(mins => $4))
+          AND (s.show_date + s.show_time +
+              make_interval(mins => COALESCE(s.duration, 120))) >
+              ($2::date + $3::time)
+        LIMIT 1`,
+      [showroomId, showDate, showTime, duration]
+    );
+
+    if (conflict.rows.length > 0) {
+      const existing = conflict.rows[0];
+      return res.status(409).json({
+        error: `Scheduling conflict: this showroom is already being used by ${existing.title} at ${String(existing.show_time).slice(0, 5)}.`,
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO shows
+         (movie_id, showroom_id, show_date, show_time, duration, available_seats)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [movieId, showroomId, showDate, showTime, duration, room.rows[0].number_of_seats]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    if (error.code === '22007' || error.code === '22008') {
+      return res.status(400).json({ error: 'Please enter a valid date and time.' });
+    }
+    if (error.code === '23505') {
+      return res.status(409).json({
+        error: 'That showroom already has a show at this date and time.',
+      });
+    }
+    console.error('Error scheduling show:', error);
+    res.status(500).json({ error: 'Failed to schedule show' });
+  }
+});
+
+app.post('/api/promotions', authenticate, requireAdmin, async (req, res) => {
+  const { promoCode, discountPercentage, validUntil } = req.body;
+  const discount = Number(discountPercentage);
+
+  if (!promoCode || !promoCode.trim()) {
+    return res.status(400).json({ error: 'Promo code is required.' });
+  }
+  if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+    return res.status(400).json({ error: 'Discount must be between 0 and 100.' });
+  }
+  if (!validUntil) {
+    return res.status(400).json({ error: 'Valid until date is required.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO promotions (promo_code, discount_percentage, valid_until)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [promoCode.trim().toUpperCase(), discount, validUntil]
+    );
+    const promo = result.rows[0];
+
+    const subscribers = await pool.query(
+      `SELECT email FROM users
+       WHERE promotional_emails = TRUE AND status = 'Active' AND role = 'customer'`
+    );
+
+    let emailsSent = 0;
+    for (const user of subscribers.rows) {
+      try {
+        await sendPromotionEmail(user.email, promo);
+        emailsSent += 1;
+      } catch (err) {
+        console.error(`Failed to email ${user.email}:`, err.message);
+      }
+    }
+
+    res.status(201).json({
+      ...promo,
+      emailsSent,
+      message: `Promotion created. Emailed ${emailsSent} subscribed user(s).`,
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'That promo code already exists.' });
+    }
+    console.error('Error creating promotion:', error);
+    res.status(500).json({ error: 'Failed to create promotion' });
+  }
+});
+
+app.get('/api/users', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT user_id, email, first_name, last_name, role, status, promotional_emails
+       FROM users
+       ORDER BY user_id`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.put('/api/users/:id/status', authenticate, requireAdmin, async (req, res) => {
+  const { status } = req.body;
+  if (!['Active', 'Inactive', 'Suspended'].includes(status)) {
+    return res.status(400).json({ error: 'Status must be Active, Inactive, or Suspended.' });
+  }
+  if (Number(req.params.id) === Number(req.user.userId)) {
+    return res.status(400).json({ error: 'You cannot change your own status.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $2
+       RETURNING user_id, email, first_name, last_name, role, status, promotional_emails`,
+      [status, req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({ error: 'Failed to update user status' });
   }
 });
 

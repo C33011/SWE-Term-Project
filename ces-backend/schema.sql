@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS seats (
     seat_number  INT,
     status       VARCHAR(50) DEFAULT 'available',
     CONSTRAINT fk_seats_showroom_id FOREIGN KEY (showroom_id)
-        REFERENCES showrooms(showroom_id) ON DELETE CASCADE
+        REFERENCES showrooms(showroom_id) ON DELETE CASCADE,
+    CONSTRAINT uq_seats_showroom_position UNIQUE (showroom_id, row_number, seat_number)
 );
 
 CREATE TABLE IF NOT EXISTS shows (
@@ -59,7 +60,9 @@ CREATE TABLE IF NOT EXISTS shows (
     CONSTRAINT fk_shows_movie_id FOREIGN KEY (movie_id)
         REFERENCES movies(movie_id) ON DELETE CASCADE,
     CONSTRAINT fk_shows_showroom_id FOREIGN KEY (showroom_id)
-        REFERENCES showrooms(showroom_id) ON DELETE SET NULL
+        REFERENCES showrooms(showroom_id) ON DELETE SET NULL,
+    CONSTRAINT uq_shows_showroom_datetime
+        UNIQUE (showroom_id, show_date, show_time)
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -139,7 +142,8 @@ CREATE TABLE IF NOT EXISTS tickets (
     CONSTRAINT fk_tickets_show_id FOREIGN KEY (show_id)
         REFERENCES shows(show_id) ON DELETE CASCADE,
     CONSTRAINT fk_tickets_seat_id FOREIGN KEY (seat_id)
-        REFERENCES seats(seat_id) ON DELETE RESTRICT
+        REFERENCES seats(seat_id) ON DELETE RESTRICT,
+    CONSTRAINT uq_tickets_show_seat UNIQUE (show_id, seat_id)
 );
 
 CREATE TABLE IF NOT EXISTS favorite_movies (

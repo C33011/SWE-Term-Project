@@ -55,4 +55,23 @@ const sendProfileUpdateEmail = async (email) => {
   }
 };
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendProfileUpdateEmail };
+async function sendPromotionEmail(toEmail, promo) {
+  await transporter.sendMail({
+    from: `"Cinema E-Booking" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `New CES promo: ${promo.promo_code}`,
+    html: `
+      <h2>A new promotion is available!</h2>
+      <p>Use code <strong>${promo.promo_code}</strong> for
+      <strong>${promo.discount_percentage}% off</strong>.</p>
+      <p>Valid until ${promo.valid_until}.</p>
+    `,
+  });
+}
+
+module.exports = {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendProfileUpdateEmail,
+  sendPromotionEmail,
+};

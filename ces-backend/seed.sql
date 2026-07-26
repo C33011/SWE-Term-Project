@@ -243,38 +243,39 @@ INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, availa
     ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25', '17:00:00', 110, 50),
     ((SELECT movie_id FROM movies WHERE title = 'Backrooms'), 3, '2026-06-25', '20:00:00', 110, 50);
 
+-- Later dates so these don't collide with Toy Story / Obsession / Backrooms in the same rooms
 INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '14:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '17:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-23', '20:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '14:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '17:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-24', '20:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '14:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '17:00:00', 130, 100),
-    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-25', '20:00:00', 130, 100);
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-26', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-26', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-26', '20:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-27', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-27', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-27', '20:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-28', '14:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-28', '17:00:00', 130, 100),
+    ((SELECT movie_id FROM movies WHERE title = 'Project Hail Mary'), 1, '2026-06-28', '20:00:00', 130, 100);
 
 INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '14:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '17:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-23', '20:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '14:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '17:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-24', '20:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '14:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '17:00:00', 115, 75),
-    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-25', '20:00:00', 115, 75);
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-26', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-26', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-26', '20:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-27', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-27', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-27', '20:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-28', '14:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-28', '17:00:00', 115, 75),
+    ((SELECT movie_id FROM movies WHERE title = 'Masters of the Universe'), 2, '2026-06-28', '20:00:00', 115, 75);
 
 INSERT INTO shows (movie_id, showroom_id, show_date, show_time, duration, available_seats) VALUES
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '14:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '17:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-23', '20:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '14:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '17:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-24', '20:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '14:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '17:00:00', 100, 50),
-    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-25', '20:00:00', 100, 50);
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-26', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-26', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-26', '20:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-27', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-27', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-27', '20:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-28', '14:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-28', '17:00:00', 100, 50),
+    ((SELECT movie_id FROM movies WHERE title = 'Scary Movie'), 3, '2026-06-28', '20:00:00', 100, 50);
 
 
 INSERT INTO users (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { saveLogin } from '../auth';
 
 const Login = () => {
@@ -8,6 +8,7 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async () => {
     setError(null);
@@ -23,8 +24,17 @@ const Login = () => {
       if (!res.ok) return setError(data.error);
 
       saveLogin(data.token, data.user, rememberMe);
-      // Role-based routing: admin -> admin portal, customer -> home
-      navigate(data.user.role === 'admin' ? '/admin' : '/');
+
+      const requestedRedirect = searchParams.get('redirect');
+      const safeRedirect = requestedRedirect && requestedRedirect.startsWith('/') && !requestedRedirect.startsWith('//')
+        ? requestedRedirect
+        : null;
+
+      if (data.user.role === 'customer' && safeRedirect) {
+        navigate(safeRedirect, { replace: true });
+      } else {
+        navigate(data.user.role === 'admin' ? '/admin' : '/', { replace: true });
+      }
     } catch {
       setError('Could not reach the server. Is the backend running?');
     }

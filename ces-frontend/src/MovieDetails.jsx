@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
+function formatDateOnly(value) {
+  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return String(value);
+  return new Date(year, month - 1, day).toLocaleDateString();
+}
+
 const MovieDetails = () => {
   const { id: movieId } = useParams();
   const navigate = useNavigate();
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const showtimes = ['2:00 PM', '5:00 PM', '8:00 PM'];
+  const [shows, setShows] = useState([]); // EDIT A: real showtimes from DB
 
   useEffect(() => {
     const fetchMovie = async () => {
@@ -22,6 +27,14 @@ const MovieDetails = () => {
       }
     };
     fetchMovie();
+  }, [movieId]);
+
+  // EDIT B: fetch the real showtimes for this movie
+  useEffect(() => {
+    fetch(`/api/movies/${movieId}/shows`)
+      .then((res) => res.json())
+      .then(setShows)
+      .catch((err) => console.error('Error fetching shows:', err));
   }, [movieId]);
 
   if (loading) return <div style={{ padding: '20px' }}>Loading movie details...</div>;
@@ -44,18 +57,24 @@ const MovieDetails = () => {
           {movie.cast_members && <p><strong>Cast:</strong> {movie.cast_members}</p>}
           <p style={{ marginTop: '15px' }}>{movie.description}</p>
 
+          {/* EDIT C: real showtimes from the database */}
           <h3 style={{ marginTop: '20px' }}>Showtimes</h3>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {showtimes.map((time) => (
-              <button
-                key={time}
-                onClick={() => navigate(`/booking/${movieId}?time=${encodeURIComponent(time)}`)}
-                style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                {time}
-              </button>
-            ))}
-          </div>
+          {shows.length === 0 ? (
+            <p>No showtimes scheduled yet.</p>
+          ) : (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {shows.map((show) => (
+                <button
+                  key={show.show_id}
+                  onClick={() => navigate(`/booking/${show.show_id}`)}
+                  style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {formatDateOnly(show.show_date)} — {show.show_time.slice(0, 5)}
+                  {show.showroom_name ? ` (${show.showroom_name})` : ''}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
