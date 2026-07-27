@@ -37,61 +37,92 @@ const MovieDetails = () => {
       .catch((err) => console.error('Error fetching shows:', err));
   }, [movieId]);
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading movie details...</div>;
-  if (!movie || movie.error) return <div style={{ padding: '20px' }}>Movie not found.</div>;
+  if (loading) return <div style={{ backgroundColor: '#111', color: '#d4af37', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', fontFamily: 'Georgia, serif' }}>Loading movie details... 🎬</div>;
+  if (!movie || movie.error) return <div style={{ backgroundColor: '#111', color: '#d4af37', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', fontFamily: 'Georgia, serif' }}>Movie not found.</div>;
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial', maxWidth: '900px', margin: '0 auto' }}>
-      <button onClick={() => navigate('/')} style={{ padding: '8px 16px', marginBottom: '20px', cursor: 'pointer' }}>
-        ← Back to Movies
-      </button>
-
-      <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-        <img src={movie.poster_url} alt={movie.title} style={{ width: '250px', borderRadius: '8px' }} />
-
-        <div style={{ flex: 1, minWidth: '300px' }}>
-          <h1>{movie.title}</h1>
-          <p><strong>Rating:</strong> {movie.rating}</p>
-          <p><strong>Status:</strong> {movie.status}</p>
-          {movie.director && <p><strong>Director:</strong> {movie.director}</p>}
-          {movie.cast_members && <p><strong>Cast:</strong> {movie.cast_members}</p>}
-          <p style={{ marginTop: '15px' }}>{movie.description}</p>
-
-          {/* EDIT C: real showtimes from the database */}
-          <h3 style={{ marginTop: '20px' }}>Showtimes</h3>
-          {shows.length === 0 ? (
-            <p>No showtimes scheduled yet.</p>
-          ) : (
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {shows.map((show) => (
-                <button
-                  key={show.show_id}
-                  onClick={() => navigate(`/booking/${show.show_id}`)}
-                  style={{ border: '1px solid #333', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  {formatDateOnly(show.show_date)} — {show.show_time.slice(0, 5)}
-                  {show.showroom_name ? ` (${show.showroom_name})` : ''}
-                </button>
-              ))}
-            </div>
-          )}
+    <div style={{ backgroundColor: '#111', color: '#fff', minHeight: '100vh', padding: '40px 20px', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', backgroundColor: 'rgba(17,17,17,0.95)', padding: '45px', borderRadius: '20px', border: '2px solid #d4af37', boxShadow: '0 0 40px rgba(212,175,55,0.2)' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+          <button onClick={() => navigate('/')} style={{ background: 'transparent', color: '#d4af37', border: '1px solid #d4af37', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+            ← Back to Movies
+          </button>
+          <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=MoviePopup" alt="Pixel Cinema Guide" style={{ width: '45px', height: '45px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
         </div>
-      </div>
 
-      <h3 style={{ marginTop: '30px' }}>Trailer</h3>
-      {movie.trailer_url ? (
-        <iframe
-          width="100%"
-          height="450"
-          src={movie.trailer_url}
-          title={`${movie.title} trailer`}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-      ) : (
-        <p>No trailer available.</p>
-      )}
+        <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative' }}>
+            <img src={movie.poster_url} alt={movie.title} style={{ width: '300px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.9)', border: '2px solid #333', objectFit: 'cover' }} />
+          </div>
+
+          <div style={{ flex: 1, minWidth: '300px' }}>
+            <h1 style={{ color: '#d4af37', fontFamily: 'Georgia, serif', fontSize: '42px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '2px', textShadow: '2px 2px 4px #000' }}>
+              {movie.title}
+            </h1>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '20px', borderRadius: '12px', border: '1px solid #333', marginBottom: '25px' }}>
+              <div><strong style={{ color: '#d4af37' }}>Rating:</strong> <span style={{ color: '#fff'  }}>{movie.rating}</span></div>
+              <div><strong style={{ color: '#d4af37' }}>Status:</strong> <span style={{ color: '#fff' }}>{movie.status}</span></div>
+              {movie.director && <div style={{ gridColumn: 'span 2' }}><strong style={{ color: '#d4af37' }}>Director:</strong> <span style={{ color: '#fff' }}>{movie.director}</span></div>}
+              {movie.cast_members && <div style={{ gridColumn: 'span 2' }}><strong style={{ color: '#d4af37' }}>Cast:</strong> <span style={{ color: '#ccc' }}>{movie.cast_members}</span></div>}
+            </div>
+            
+            <p style={{ fontSize: '18px', lineHeight: '1.6', color: '#ddd', marginBottom: '30px' }}>
+              {movie.description}
+            </p>
+
+            {/* EDIT C: real showtimes from the database */}
+            <h3 style={{ color: '#d4af37', borderBottom: '1px solid #333', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <img src="https://api.iconify.design/pixelarticons:calendar.svg?color=%23d4af37" alt="Calendar" style={{ width: '22px', height: '22px' }} />
+              Showtimes
+            </h3>
+            {shows.length === 0 ? (
+              <p style={{ color: '#999' }}>No showtimes scheduled yet.</p>
+            ) : (
+              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '15px' }}>
+                {shows.map((show) => (
+                  <button
+                    key={show.show_id}
+                    onClick={() => navigate(`/booking/${show.show_id}`)}
+                    style={{ 
+                      backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#d4af37', border: '1px solid #d4af37', 
+                      padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.5)', transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(212,175,55,0.3)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(212,175,55,0.1)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    🎟️ {formatDateOnly(show.show_date)} — {show.show_time.slice(0, 5)}
+                    {show.showroom_name ? ` (${show.showroom_name})` : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <h3 style={{ marginTop: '50px', color: '#d4af37', borderBottom: '1px solid #333', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src="https://api.iconify.design/pixelarticons:sliders.svg?color=%23d4af37" alt="Trailer" style={{ width: '22px', height: '22px' }} />
+          Trailer
+        </h3>
+        {movie.trailer_url ? (
+          <div style={{ borderRadius: '12px', overflow: 'hidden', border: '2px solid #d4af37', boxShadow: '0 10px 30px rgba(212,175,55,0.2)', marginTop: '20px' }}>
+            <iframe
+              width="100%"
+              height="500"
+              src={movie.trailer_url}
+              title={`${movie.title} trailer`}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ display: 'block' }}
+            ></iframe>
+          </div>
+        ) : (
+          <p style={{ color: '#999' }}>No trailer available.</p>
+        )}
+      </div>
     </div>
   );
 };
