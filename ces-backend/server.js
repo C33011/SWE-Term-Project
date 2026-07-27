@@ -19,6 +19,8 @@ const pool = new Pool({
 const authRoutes = require('./auth');
 const cardRoutes = require('./cards');
 const checkoutRoutes = require('./checkout');
+const orderRoutes = require('./routes/orders');
+const seatLockRoutes = require('./routes/seatLocks');
 const { authenticate, requireAdmin, requireCustomer } = require('./middleware');
 const { sendPromotionEmail } = require('./email');
 
@@ -79,6 +81,8 @@ function validateMovieInput(body) {
 app.use('/api/auth', authRoutes(pool));
 app.use('/api/profile/cards', cardRoutes(pool));
 app.use('/api/checkout', checkoutRoutes(pool));
+app.use('/api/orders', orderRoutes(pool));
+app.use('/api/seat-locks', seatLockRoutes(pool));
 
 app.get('/api/admin/ping', authenticate, requireAdmin, (req, res) => {
   res.json({ message: 'Admin access confirmed' });
@@ -181,13 +185,30 @@ app.get('/api/shows/:showId/seats', async (req, res) => {
     );
     const bookedIds = new Set(bookedResult.rows.map((r) => r.seat_id));
 
-    const seats = seatsResult.rows.map((seat) => ({
-      seatId: seat.seat_id,
-      row: seat.row_number,
-      number: seat.seat_number,
-      label: `${seat.row_number}${seat.seat_number}`,
-      booked: bookedIds.has(seat.seat_id),
-    }));
+    await pool.query('DELETE FROM seat_locks WHERE expires_at <= CURRENT_TIMESTAMP');
+    const lockResult = await pool.query(
+      `SELECT seat_id, session_id, expires_at
+         FROM seat_locks
+        WHERE show_id = $1 AND expires_at > CURRENT_TIMESTAMP`,
+      [showId]
+    );
+    const locksBySeat = new Map(lockResult.rows.map((row) => [row.seat_id, row]));
+    const currentSessionId = String(req.query.sessionId || '');
+
+    const seats = seatsResult.rows.map((seat) => {
+      const lock = locksBySeat.get(seat.seat_id);
+      const lockedByCurrentSession = Boolean(lock && currentSessionId && lock.session_id === currentSessionId);
+      return {
+        seatId: seat.seat_id,
+        row: seat.row_number,
+        number: seat.seat_number,
+        label: `${seat.row_number}${seat.seat_number}`,
+        booked: bookedIds.has(seat.seat_id),
+        locked: Boolean(lock && !lockedByCurrentSession),
+        lockedByCurrentSession,
+        lockExpiresAt: lock?.expires_at || null,
+      };
+    });
 
     res.json({ show, seats });
   } catch (error) {

@@ -69,9 +69,51 @@ async function sendPromotionEmail(toEmail, promo) {
   });
 }
 
+
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function sendOrderConfirmationEmail(toEmail, order) {
+  const ticketRows = order.tickets.map((ticket) => `
+    <tr>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(ticket.ticketType)}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd">${escapeHtml(ticket.label)}</td>
+      <td style="padding:8px;border-bottom:1px solid #ddd">$${Number(ticket.price).toFixed(2)}</td>
+    </tr>`).join('');
+
+  await transporter.sendMail({
+    from: `"Cinema E-Booking" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Booking confirmed: ${order.confirmationNumber}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;color:#222;max-width:680px;margin:auto">
+        <h1 style="color:#9b7a16">Your booking is confirmed</h1>
+        <p><strong>Confirmation:</strong> ${escapeHtml(order.confirmationNumber)}</p>
+        <p><strong>Movie:</strong> ${escapeHtml(order.movieTitle)}</p>
+        <p><strong>Showtime:</strong> ${escapeHtml(String(order.showDate).slice(0, 10))} at ${escapeHtml(String(order.showTime).slice(0, 5))}</p>
+        <p><strong>Showroom:</strong> ${escapeHtml(order.showroomName)}</p>
+        <table style="width:100%;border-collapse:collapse;margin:20px 0">
+          <thead><tr><th style="text-align:left;padding:8px">Ticket type</th><th style="text-align:left;padding:8px">Seat</th><th style="text-align:left;padding:8px">Price</th></tr></thead>
+          <tbody>${ticketRows}</tbody>
+        </table>
+        <p style="font-size:18px"><strong>Total paid: $${Number(order.totalAmount).toFixed(2)}</strong></p>
+        <p>Payment: ${escapeHtml(order.paymentMethod)} ending in ${escapeHtml(order.cardLastFour)}</p>
+      </div>
+    `,
+  });
+}
+
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendProfileUpdateEmail,
   sendPromotionEmail,
+  sendOrderConfirmationEmail,
 };

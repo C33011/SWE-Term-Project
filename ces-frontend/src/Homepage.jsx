@@ -62,9 +62,24 @@ const HomePage = () => {
     const ids = trailers.map(m => getYouTubeId(m.trailer_url)).filter(id => id);
     if (ids.length === 0) return '';
     
-    const firstId = ids[0];
-    const allIdsString = ids.join(',');
-    
+    // const firstId = ids[0];
+    // const allIdsString = ids.join(',');
+
+    const shuffledIds = [...ids];
+
+    for (let i = shuffledIds.length - 1; i > 0; i -= 1) {
+      const randomIndex = Math.floor(Math.random() * (i + 1));
+
+      [shuffledIds[i], shuffledIds[randomIndex]] = [
+        shuffledIds[randomIndex],
+        shuffledIds[i],
+      ];
+    }
+
+    const firstId = shuffledIds[0];
+    const allIdsString = shuffledIds.join(',');
+
+
     // start=5 cuts the first 5 seconds; end=115 cuts the last 10 seconds to avoid next video previews on typical ~2m trailers
     return `https://www.youtube.com/embed/${firstId}?autoplay=1&mute=1&controls=0&modestbranding=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&playsinline=1&start=5&end=105&playlist=${allIdsString}&loop=1`;
   };

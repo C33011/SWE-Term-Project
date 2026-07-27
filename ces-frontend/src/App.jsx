@@ -4,6 +4,8 @@ import MovieDetails from './MovieDetails';
 import BookingPage from './BookingPage';
 import CheckoutSummary from './CheckoutSummary';
 import PaymentPage from './PaymentPage';
+import ConfirmationPage from './ConfirmationPage';
+import OrderHistory from './OrderHistory';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import VerifyEmail from './pages/VerifyEmail';
@@ -36,7 +38,10 @@ function NavBar() {
       fontWeight: 'bold'
     }}>
       <Link to="/" style={{ color: '#000', textDecoration: 'none', fontSize: '20px', fontFamily: 'Georgia, serif' }}>🎬 CES</Link>
-      {user?.role === 'customer' && <Link to="/favorites" style={{ color: '#000', textDecoration: 'none' }}>My Favorite Movies</Link>}
+      {user?.role === 'customer' && <>
+        <Link to="/favorites" style={{ color: '#000', textDecoration: 'none' }}>My Favorite Movies</Link>
+        <Link to="/orders" style={{ color: '#000', textDecoration: 'none' }}>My Orders</Link>
+      </>}
       <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
         {user ? <>
           <span style={{ color: '#000' }}>Hi, {user.firstName}!</span>
@@ -81,6 +86,8 @@ function App() {
         <Route path="/booking/:showId" element={<BookingPage />} />
         <Route path="/checkout" element={<CustomerRoute><CheckoutSummary /></CustomerRoute>} />
         <Route path="/payment" element={<CustomerRoute><PaymentPage /></CustomerRoute>} />
+        <Route path="/confirmation/:bookingId" element={<CustomerRoute><ConfirmationPage /></CustomerRoute>} />
+        <Route path="/orders" element={<CustomerRoute><OrderHistory /></CustomerRoute>} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/verify/:token" element={<VerifyEmail />} />

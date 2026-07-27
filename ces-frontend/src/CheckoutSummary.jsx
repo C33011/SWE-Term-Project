@@ -50,6 +50,7 @@ const CheckoutSummary = () => {
           showId: pending.showId,
           seatIds: pending.seatIds,
           ticketCounts: pending.tickets,
+          lockSessionId: pending.lockSessionId,
         }),
       }).then(async (response) => {
         const data = await response.json();

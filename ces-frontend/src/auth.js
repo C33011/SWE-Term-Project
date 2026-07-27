@@ -1,7 +1,7 @@
 // One place that manages "who is logged in" for the whole frontend.
 
 export function saveLogin(token, user, rememberMe) {
-  // Clear any older login first so getToken/getUser CANNOT MIX 2 SESSIONS-> imp
+  // Clear any older login first CANNOT MIX 2 SESSIONS UNDER ANY CONDITION
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   sessionStorage.removeItem('token');

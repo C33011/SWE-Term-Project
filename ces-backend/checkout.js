@@ -1,79 +1,21 @@
 const express = require('express');
 const { authenticate, requireCustomer } = require('./middleware');
 
-// confirm once
-const TICKET_PRICES = {
-  Adult: 12.50,
-  Senior: 9.50,
-  Child: 8.50,
-};
-
-const TICKET_TYPES = Object.keys(TICKET_PRICES);
-
-function validateTicketCounts(ticketCounts) {
-  if (!ticketCounts || typeof ticketCounts !== 'object') {
-    return { error: 'Ticket counts are required.' };
-  }
-
-  const counts = {};
-  let totalTickets = 0;
-
-  for (const type of TICKET_TYPES) {
-    const raw = ticketCounts[type];
-    const count = raw === undefined ? 0 : Number(raw);
-    if (!Number.isInteger(count) || count < 0) {
-      return { error: `Invalid ticket count for type "${type}".` };
-    }
-    counts[type] = count;
-    totalTickets += count;
-  }
-
-  if (totalTickets <= 0) {
-    return { error: 'At least one ticket must be selected.' };
-  }
-
-  return { counts, totalTickets };
-}
-
-function computeLineItems(counts) {
-  const lineItems = [];
-  let totalCents = 0;
-
-  for (const [type, count] of Object.entries(counts)) {
-    if (count <= 0) continue;
-
-    const pricePerTicket = TICKET_PRICES[type];
-    const priceCents = Math.round(pricePerTicket * 100);
-    const subtotalCents = priceCents * count;
-    totalCents += subtotalCents;
-
-    lineItems.push({
-      ticketType: type,
-      quantity: count,
-      pricePerTicket,
-      subtotal: subtotalCents / 100,
-    });
-  }
-
-  return {
-    lineItems,
-    totalBeforeTax: totalCents / 100,
-  };
-}
+const { TICKET_PRICES, validateTicketCounts, computeLineItems } = require('./services/checkoutCore');
 
 module.exports = function createCheckoutRoutes(pool) {
   const router = express.Router();
 
-  // guest choose b4 login
+  // prices public cuz guests can choose before login
   router.get('/prices', (req, res) => {
     res.json({ prices: TICKET_PRICES });
   });
 
-  // beyond this needs auth.
+  // after this point required an authenticated customer
   router.use(authenticate, requireCustomer);
 
   router.post('/summary', async (req, res) => {
-    const { showId, seatIds, ticketCounts } = req.body;
+    const { showId, seatIds, ticketCounts, lockSessionId } = req.body;
     const normalizedShowId = Number(showId);
 
     if (!Number.isInteger(normalizedShowId) || normalizedShowId <= 0) {
@@ -153,6 +95,25 @@ module.exports = function createCheckoutRoutes(pool) {
         });
       }
 
+      await pool.query('DELETE FROM seat_locks WHERE expires_at <= CURRENT_TIMESTAMP');
+      const lockResult = await pool.query(
+        `SELECT seat_id, session_id
+           FROM seat_locks
+          WHERE show_id = $1
+            AND seat_id = ANY($2::int[])
+            AND expires_at > CURRENT_TIMESTAMP`,
+        [normalizedShowId, normalizedSeatIds]
+      );
+      const conflictingLocks = lockResult.rows.filter(
+        (row) => !lockSessionId || row.session_id !== String(lockSessionId)
+      );
+      if (conflictingLocks.length > 0) {
+        return res.status(409).json({
+          error: 'One or more selected seats are being held by another customer.',
+          lockedSeatIds: conflictingLocks.map((row) => row.seat_id),
+        });
+      }
+
       const seats = seatResult.rows.map((seat) => ({
         seatId: seat.seat_id,
         row: seat.row_number,
@@ -172,7 +133,7 @@ module.exports = function createCheckoutRoutes(pool) {
         ticketBreakdown: lineItems,
         totalTickets: ticketCheck.totalTickets,
         totalBeforeTax,
-        readyForPaymentMockup: true,
+        readyForPayment: true,
       });
     } catch (error) {
       console.error('Checkout summary error:', error);
@@ -198,7 +159,7 @@ module.exports = function createCheckoutRoutes(pool) {
     }
   });
 
-  // Confirm this in test runs pls
+  // Confirm an order-specific email without changing the account login email
   router.put('/email', async (req, res) => {
     const trimmed = String(req.body.email || '').trim();
     const basicEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

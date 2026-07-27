@@ -5,6 +5,32 @@ import { getUser } from './auth';
 const DEFAULT_PRICES = { Adult: 12.50, Senior: 9.50, Child: 8.50 };
 const EMPTY_TICKETS = { Adult: 0, Senior: 0, Child: 0 };
 const PENDING_BOOKING_KEY = 'pendingBooking';
+const BOOKING_SESSION_KEY = 'bookingSessionId';
+
+
+function getOrCreateBookingSessionId() {
+  let value = sessionStorage.getItem(BOOKING_SESSION_KEY);
+  if (!value) {
+    value = globalThis.crypto?.randomUUID?.() || `booking_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem(BOOKING_SESSION_KEY, value);
+  }
+  return value;
+}
+
+async function requestSeatHold(showId, sessionId, seatIds) {
+  const response = await fetch('/api/seat-locks/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ showId: Number(showId), sessionId, seatIds }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const error = new Error(data.error || 'Could not hold the selected seats.');
+    error.unavailableSeatIds = data.unavailableSeatIds || [];
+    throw error;
+  }
+  return data;
+}
 
 function formatDateOnly(value) {
   const [year, month, day] = String(value).slice(0, 10).split('-').map(Number);
@@ -29,6 +55,7 @@ const BookingPage = () => {
   const navigate = useNavigate();
 
   const restored = useMemo(() => readPendingBooking(showId), [showId]);
+  const bookingSessionId = useMemo(getOrCreateBookingSessionId, []);
   const [show, setShow] = useState(null);
   const [seats, setSeats] = useState([]);
   const [prices, setPrices] = useState(DEFAULT_PRICES);
@@ -37,12 +64,15 @@ const BookingPage = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [movieDetails, setMovieDetails] = useState(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState(null);
+  const [holdSeconds, setHoldSeconds] = useState(0);
+  const [syncingHold, setSyncingHold] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     Promise.all([
-      fetch(`/api/shows/${showId}/seats`).then(async (response) => {
+      fetch(`/api/shows/${showId}/seats?sessionId=${encodeURIComponent(bookingSessionId)}`).then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Could not load the seat map.');
         return data;
@@ -68,14 +98,30 @@ const BookingPage = () => {
               if (!cancelled) setMovieDetails(movieData);
             }
           } catch {
-            // fallback if movie details fail
+            // fallback if bruh moment
           }
         }
 
         const availableIds = new Set(
-          (seatData.seats || []).filter((seat) => !seat.booked).map((seat) => seat.seatId)
+          (seatData.seats || []).filter((seat) => !seat.booked && !seat.locked).map((seat) => seat.seatId)
         );
-        setSelectedSeats((current) => current.filter((id) => availableIds.has(id)));
+        const restoredSeatIds = (restored?.seatIds || []).filter((id) => availableIds.has(id));
+        if (restoredSeatIds.length > 0) {
+          try {
+            const lockData = await requestSeatHold(showId, bookingSessionId, restoredSeatIds);
+            if (!cancelled) {
+              setHoldExpiresAt(Date.now() + lockData.expiresInSeconds * 1000);
+              setSelectedSeats(restoredSeatIds);
+            }
+          } catch (holdError) {
+            if (!cancelled) {
+              setSelectedSeats([]);
+              setError(holdError.message);
+            }
+          }
+        } else {
+          setSelectedSeats([]);
+        }
       })
       .catch((loadError) => {
         if (!cancelled) setError(loadError.message);
@@ -87,7 +133,46 @@ const BookingPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [showId]);
+  }, [showId, bookingSessionId, restored]);
+
+  useEffect(() => {
+    const refreshSeatStatuses = async () => {
+      try {
+        const response = await fetch(`/api/shows/${showId}/seats?sessionId=${encodeURIComponent(bookingSessionId)}`);
+        const data = await response.json();
+        if (!response.ok) return;
+        setSeats(data.seats || []);
+        const unavailableIds = new Set(
+          (data.seats || []).filter((seat) => seat.booked || seat.locked).map((seat) => seat.seatId)
+        );
+        setSelectedSeats((current) => {
+          const stillAvailable = current.filter((id) => !unavailableIds.has(id));
+          if (stillAvailable.length !== current.length) {
+            setError('A selected seat is no longer available. Please choose another seat.');
+            persistBooking(stillAvailable, tickets);
+          }
+          return stillAvailable;
+        });
+      } catch {
+        // Keep the current seat map if a background refresh briefly bruh moments
+      }
+    };
+
+    const intervalId = window.setInterval(refreshSeatStatuses, 8000);
+    return () => window.clearInterval(intervalId);
+  }, [showId, bookingSessionId, tickets]);
+
+  useEffect(() => {
+    if (!holdExpiresAt || selectedSeats.length === 0) {
+      setHoldSeconds(0);
+      return undefined;
+    }
+
+    const update = () => setHoldSeconds(Math.max(0, Math.ceil((holdExpiresAt - Date.now()) / 1000)));
+    update();
+    const timerId = window.setInterval(update, 1000);
+    return () => window.clearInterval(timerId);
+  }, [holdExpiresAt, selectedSeats.length]);
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -114,6 +199,7 @@ const BookingPage = () => {
       show,
       seatIds,
       tickets: ticketCounts,
+      lockSessionId: bookingSessionId,
       savedAt: new Date().toISOString(),
     }));
   };
@@ -124,34 +210,49 @@ const BookingPage = () => {
     const nextTickets = { ...tickets, [type]: count };
     setTickets(nextTickets);
     setSelectedSeats([]);
+    setHoldExpiresAt(null);
     setError(null);
     persistBooking([], nextTickets);
+    requestSeatHold(showId, bookingSessionId, []).catch(() => {});
   };
 
-  const toggleSeat = (seat) => {
-    if (seat.booked) return;
+  const toggleSeat = async (seat) => {
+    if (seat.booked || seat.locked || syncingHold) return;
     setError(null);
 
-    setSelectedSeats((current) => {
-      let next;
-      if (current.includes(seat.seatId)) {
-        next = current.filter((id) => id !== seat.seatId);
-      } else if (totalTickets <= 0) {
-        setError('Choose at least one ticket before selecting seats.');
-        return current;
-      } else if (current.length >= totalTickets) {
-        setError(`You selected ${totalTickets} ticket(s). Deselect a seat or add another ticket.`);
-        return current;
-      } else {
-        next = [...current, seat.seatId];
-      }
+    let next;
+    if (selectedSeats.includes(seat.seatId)) {
+      next = selectedSeats.filter((id) => id !== seat.seatId);
+    } else if (totalTickets <= 0) {
+      setError('Choose at least one ticket before selecting seats.');
+      return;
+    } else if (selectedSeats.length >= totalTickets) {
+      setError(`You selected ${totalTickets} ticket(s). Deselect a seat or add another ticket.`);
+      return;
+    } else {
+      next = [...selectedSeats, seat.seatId];
+    }
 
+    setSyncingHold(true);
+    try {
+      const lockData = await requestSeatHold(showId, bookingSessionId, next);
+      setSelectedSeats(next);
+      setHoldExpiresAt(next.length > 0 ? Date.now() + lockData.expiresInSeconds * 1000 : null);
       persistBooking(next, tickets);
-      return next;
-    });
+    } catch (holdError) {
+      setError(holdError.message);
+      if (holdError.unavailableSeatIds?.length) {
+        setSeats((current) => current.map((item) => (
+          holdError.unavailableSeatIds.includes(item.seatId) ? { ...item, locked: true } : item
+        )));
+      }
+    } finally {
+      setSyncingHold(false);
+    }
   };
 
-  const proceed = () => {
+  const proceed = async () => {
+    if (syncingHold) return;
     setError(null);
 
     if (totalTickets <= 0) {
@@ -164,6 +265,17 @@ const BookingPage = () => {
       return;
     }
 
+    setSyncingHold(true);
+    try {
+      const lockData = await requestSeatHold(showId, bookingSessionId, selectedSeats);
+      setHoldExpiresAt(Date.now() + lockData.expiresInSeconds * 1000);
+    } catch (holdError) {
+      setError(holdError.message);
+      setSyncingHold(false);
+      return;
+    }
+    setSyncingHold(false);
+
     const seatLabels = selectedSeats.map(
       (id) => seats.find((seat) => seat.seatId === id)?.label
     );
@@ -174,6 +286,7 @@ const BookingPage = () => {
       seatIds: selectedSeats,
       seatLabels,
       tickets,
+      lockSessionId: bookingSessionId,
       savedAt: new Date().toISOString(),
     }));
 
@@ -320,27 +433,28 @@ const BookingPage = () => {
                 <div key={row} style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                   {seats.filter((seat) => seat.row === row).map((seat) => {
                     const isSelected = selectedSeats.includes(seat.seatId);
-                    const backgroundColor = seat.booked ? '#c0392b' : isSelected ? '#d4af37' : 'rgba(255,255,255,0.1)';
-                    const color = seat.booked ? '#ffb3b3' : isSelected ? '#000' : '#fff';
+                    const unavailable = seat.booked || seat.locked || syncingHold;
+                    const backgroundColor = seat.booked ? '#c0392b' : seat.locked ? '#7f5af0' : isSelected ? '#d4af37' : 'rgba(255,255,255,0.1)';
+                    const color = unavailable ? '#fff' : isSelected ? '#000' : '#fff';
                     const boxShadow = isSelected ? '0 0 12px #d4af37' : '0 2px 5px rgba(0,0,0,0.5)';
-                    const border = seat.booked ? '1px solid #c0392b' : isSelected ? '1px solid #d4af37' : '1px solid #444';
+                    const border = seat.booked ? '1px solid #c0392b' : seat.locked ? '1px solid #9b7cff' : isSelected ? '1px solid #d4af37' : '1px solid #444';
 
                     return (
                       <button
                         key={seat.seatId}
                         type="button"
                         onClick={() => toggleSeat(seat)}
-                        disabled={seat.booked}
+                        disabled={unavailable}
                         aria-pressed={isSelected}
-                        title={seat.booked ? `${seat.label} is already booked` : seat.label}
+                        title={seat.booked ? `${seat.label} is already booked` : seat.locked ? `${seat.label} is temporarily held` : seat.label}
                         style={{
                           height: '42px', width: '42px', borderRadius: '8px 8px 3px 3px', border,
                           backgroundColor, color, fontSize: '12px', fontWeight: 'bold', boxShadow,
-                          cursor: seat.booked ? 'not-allowed' : 'pointer',
+                          cursor: unavailable ? 'not-allowed' : 'pointer',
                           transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                         }}
-                        onMouseEnter={(e) => { if(!seat.booked && !isSelected) e.currentTarget.style.backgroundColor = 'rgba(13,202,240,0.3)'; }}
-                        onMouseLeave={(e) => { if(!seat.booked && !isSelected) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
+                        onMouseEnter={(e) => { if(!unavailable && !isSelected) e.currentTarget.style.backgroundColor = 'rgba(13,202,240,0.3)'; }}
+                        onMouseLeave={(e) => { if(!unavailable && !isSelected) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
                       >
                         {seat.label}
                       </button>
@@ -354,8 +468,14 @@ const BookingPage = () => {
           <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center', gap: '25px', fontSize: '14px', color: '#ccc', backgroundColor: 'rgba(0,0,0,0.5)', padding: '12px', borderRadius: '10px', width: 'max-content', margin: '30px auto 0 auto', border: '1px solid #333' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#d4af37', borderRadius: '3px' }}></div> Selected</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#c0392b', borderRadius: '3px' }}></div> Booked</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '16px', height: '16px', backgroundColor: '#7f5af0', borderRadius: '3px' }}></div> Held</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><div style={{ width: '16px', height: '16px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '3px' }}></div> Available</span>
           </div>
+          {selectedSeats.length > 0 && (
+            <p style={{ textAlign: 'center', color: '#d4af37', marginTop: '14px', fontWeight: 'bold' }}>
+              Your selected seats are held for this session{holdSeconds > 0 ? ` for ${Math.floor(holdSeconds / 60)}:${String(holdSeconds % 60).padStart(2, '0')}` : ''}.
+            </p>
+          )}
         </section>
 
         {error && (
@@ -372,6 +492,7 @@ const BookingPage = () => {
           <button
             type="button"
             onClick={proceed}
+            disabled={syncingHold}
             style={{ 
               background: 'linear-gradient(90deg, #d4af37 0%, #b38f27 100%)', color: '#000', 
               fontWeight: '900', padding: '16px 36px', border: 'none', borderRadius: '10px', 
@@ -381,7 +502,7 @@ const BookingPage = () => {
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
-            Proceed to Checkout 🎟️🍿
+            {syncingHold ? 'Holding Seats…' : 'Proceed to Checkout 🎟️🍿'}
           </button>
         </section>
 
