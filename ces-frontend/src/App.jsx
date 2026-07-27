@@ -23,16 +23,35 @@ function NavBar() {
   const user = getUser();
   const navigate = useNavigate();
   return (
-    <nav style={{ display: 'flex', gap: '15px', padding: '12px 20px', borderBottom: '1px solid #ddd', alignItems: 'center' }}>
-      <Link to="/">🎬 CES</Link>
-      {user?.role === 'customer' && <Link to="/favorites">My Favorite Movies</Link>}
-      <div style={{ marginLeft: 'auto', display: 'flex', gap: '15px', alignItems: 'center' }}>
+    <nav style={{ 
+      display: 'flex', 
+      gap: '20px', 
+      padding: '12px 40px', /* Increased right/left padding to add space on the edges */
+      backgroundColor: '#d4af37', 
+      borderBottom: '2px solid #b38f27', 
+      alignItems: 'center',
+      position: 'relative',
+      zIndex: 10,
+      fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+      fontWeight: 'bold'
+    }}>
+      <Link to="/" style={{ color: '#000', textDecoration: 'none', fontSize: '20px', fontFamily: 'Georgia, serif' }}>🎬 CES</Link>
+      {user?.role === 'customer' && <Link to="/favorites" style={{ color: '#000', textDecoration: 'none' }}>My Favorite Movies</Link>}
+      <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
         {user ? <>
-          <span>Hi, {user.firstName}!</span>
-          {user.role === 'admin' && <Link to="/admin">Admin Portal</Link>}
-          <Link to="/edit-profile">Edit Profile</Link>
-          <button onClick={() => { logout(); navigate('/login'); }}>Logout</button>
-        </> : <><Link to="/login">Login</Link><Link to="/register">Sign Up</Link></>}
+          <span style={{ color: '#000' }}>Hi, {user.firstName}!</span>
+          {user.role === 'admin' && <Link to="/admin" style={{ color: '#000', textDecoration: 'none' }}>Admin Portal</Link>}
+          <Link to="/edit-profile" style={{ color: '#000', textDecoration: 'none' }}>Edit Profile</Link>
+          <button 
+            onClick={() => { logout(); navigate('/login'); }} 
+            style={{ backgroundColor: '#900', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            Logout
+          </button>
+        </> : <>
+          <Link to="/login" style={{ color: '#000', textDecoration: 'none' }}>Login</Link>
+          <Link to="/register" style={{ color: '#000', textDecoration: 'none' }}>Sign Up</Link>
+        </>}
       </div>
     </nav>
   );
