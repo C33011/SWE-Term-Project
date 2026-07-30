@@ -13,13 +13,16 @@ This version extends the existing Sprint 3 checkout without replacing the existi
 - Order-confirmation email with ticket type, seat, price, and total
 - Customer order history
 - Five-minute server-side seat holds with expiration
-- Two explicit design patterns:
-  - `CheckoutFacade`
-  - `PaymentProcessorFactory`
+- Three explicit design patterns:
+  - Facade (`CheckoutFacade`)
+  - Factory Method (`PaymentProcessorFactory`)
+  - Strategy (`SavedCardPaymentProcessor` / `NewCardPaymentProcessor`)
 
 No real external card network is contacted. The payment gateway is a controlled course-project simulation, but a successful payment creates a real booking, tickets, and payment record in PostgreSQL.
 
 ## Database setup
+
+
 
 ### Existing Sprint 3 database
 
@@ -74,6 +77,8 @@ Expiration: any future month/year
 CVV: 123
 Billing address: any non-empty test address
 ```
+
+
 
 ## Run the project
 
@@ -136,6 +141,8 @@ Use a normal browser and an Incognito/InPrivate window:
 5. The hold expires automatically after five minutes if the booking is abandoned.
 6. Completing payment converts the seat into a permanently booked red seat.
 
+
+
 ## Email behavior
 
 The booking transaction commits before the email is sent. If Gmail credentials are missing or Gmail is temporarily unavailable:
@@ -147,6 +154,8 @@ The booking transaction commits before the email is sent. If Gmail credentials a
 For email delivery, set `EMAIL_USER` and a Gmail App Password in `.env`.
 
 ## Design pattern explanation
+
+
 
 ### Facade
 
@@ -173,6 +182,21 @@ ces-backend/services/payment/PaymentProcessorFactory.js
 
 The checkout facade does not need separate saved-card and new-card conditional workflows.
 
+### Strategy
+
+File:
+
+```text
+ces-backend/services/payment/PaymentProcessorFactory.js
+```
+
+`SavedCardPaymentProcessor` and `NewCardPaymentProcessor` are interchangeable payment strategies. Each encapsulates a different payment algorithm behind the same `process()` interface:
+
+- `SavedCardPaymentProcessor.process()` looks up the customer's stored card, verifies ownership, checks expiry, and decrypts the card number.
+- `NewCardPaymentProcessor.process()` validates a newly entered card (Luhn check, expiry, CVV, billing address) and optionally saves it (up to three cards).
+
+Because both strategies share the same `process()` contract, `CheckoutFacade` runs the selected payment the same way regardless of which one it receives. The two patterns work together: Factory MEthod decides which payment strategy to create, and the Strategy method lets checkout execute either payment algorithm through one common interface.
+
 ## Security points for Q/A
 
 - JWT authenticates customers and admins.
@@ -184,3 +208,4 @@ The checkout facade does not need separate saved-card and new-card conditional w
 - Only the last four digits are returned to the frontend.
 - CVV is never inserted into the database.
 - `.env` must not be submitted or committed.
+
